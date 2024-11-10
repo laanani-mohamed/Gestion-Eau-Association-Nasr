@@ -22,7 +22,7 @@ option = st.selectbox("Choisissez une option :", [
     "Charge Maintenance"
 ])
 
-# Fonction pour vérifier si tous les champs sont remplis
+# suppresion de modification
 def champs_remplis(*args):
     return all(arg not in ("", None) for arg in args)
 
