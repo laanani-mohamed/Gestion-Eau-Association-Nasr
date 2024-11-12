@@ -1,7 +1,7 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
-import pdfkit
+from fpdf import FPDF
 from datetime import datetime
 
 # Connexion à la base de données
@@ -727,10 +727,118 @@ elif option == "Charge Maintenance":
         st.info("Aucune opération de maintenance trouvée pour ce mois.")
 
 elif option == "Générer une facture de paiement":
-    
 
+    def generer_facture_pdf(n_contrat):
+        # Requête pour obtenir les détails des consommations pour le contrat donné
+        query = f'''
+            SELECT Date_consome, Quantite
+            FROM Qte_Consommation
+            WHERE n_contrat = '{n_contrat}'
+            ORDER BY Date_consome DESC
+            LIMIT 1
+        '''
+        result = cursor.execute(query).fetchall()
+        
+        # Requête pour obtenir le montant d'adhésion et le crédit restant
+        query_adhision = f'''
+            SELECT 
+                info_personne.N_contrat,
+                info_personne.Mnt_due AS Montant_Adhision,
+                COALESCE(info_personne.Mnt_due - SUM(Abonnement.Mnt_paye), info_personne.Mnt_due) AS Credit        
+            FROM 
+                info_personne
+            LEFT JOIN 
+                Abonnement 
+            ON 
+                info_personne.N_contrat = Abonnement.N_contrat
+            WHERE 
+                info_personne.N_contrat = '{n_contrat}'
+            GROUP BY 
+                info_personne.N_contrat, info_personne.Mnt_due
+        '''
+        result_adhidion = cursor.execute(query_adhision).fetchall()
 
+        if result_adhidion:
+            montant_adhision, credit = result_adhidion[0][1], result_adhidion[0][2]  # Extraire les valeurs
+        else:
+            montant_adhision, credit = 0, 0  # Valeurs par défaut si aucune donnée
 
+        if result:
+            previous_quantity = 0
+            total_quantity_consumed = 0
+            details = []
+            
+            # Traitement des données pour calculer les quantités consommées
+            for i, (date_consomation, quantity) in enumerate(result):
+                date_consomation = datetime.strptime(date_consomation, '%Y-%m-%d').strftime('%m/%Y')
+                
+                if previous_quantity is not None:
+                    quantity_consumed = quantity - previous_quantity
+                    total_quantity_consumed += quantity_consumed
+                    details.append((date_consomation, previous_quantity, quantity, quantity_consumed))
+                
+                previous_quantity = quantity
+
+            # Calcul du montant à payer
+            amount_to_pay = (7 * total_quantity_consumed) + 15
+
+            # Création de la facture avec ReportLab
+            pdf = FPDF()
+            pdf.add_page()
+
+            # Titre de la facture
+            pdf.set_font("Arial", 'B', 16)
+            pdf.cell(200, 10, "Facture de Paiement", ln=True, align='C')
+
+            # Détails du contrat et du montant
+            pdf.set_font("Arial", '', 12)
+            pdf.ln(10)  # Espacement
+            pdf.cell(100, 10, f"N° Contrat : {n_contrat}")
+            pdf.ln(10)
+            pdf.cell(100, 10, f"N° Recu : {numero_recu}")
+            pdf.ln(10)
+            pdf.cell(100, 10, f"Quantité Consommée Totale : {total_quantity_consumed}")
+            pdf.ln(10)
+            pdf.cell(100, 10, f"Montant à Payer : {amount_to_pay} MAD")
+            pdf.ln(10)
+            pdf.cell(100, 10, f"Crédit Adhésion : {credit} MAD")
+            pdf.ln(10)
+
+            # Détails de la consommation
+            pdf.cell(200, 10, "Détails de la Consommation :", ln=True)
+            pdf.ln(5)
+            pdf.set_font("Arial", 'B', 10)
+            pdf.cell(50, 10, "Date Consommation", border=1, align='C')
+            pdf.cell(50, 10, "Index Précédent", border=1, align='C')
+            pdf.cell(50, 10, "Index Actuel", border=1, align='C')
+            pdf.cell(50, 10, "Quantité Consommée", border=1, align='C')
+            pdf.ln()
+
+            # Ajouter les données des consommations
+            pdf.set_font("Arial", '', 10)
+            for date_consomation, prev_quantity, new_quantity, quantity_consumed in details:
+                pdf.cell(50, 10, date_consomation, border=1, align='C')
+                pdf.cell(50, 10, str(prev_quantity), border=1, align='C')
+                pdf.cell(50, 10, str(new_quantity), border=1, align='C')
+                pdf.cell(50, 10, str(quantity_consumed), border=1, align='C')
+                pdf.ln()
+
+            # Sauvegarder le fichier PDF
+            pdf.output(f"facture_{n_contrat}.pdf")
+
+            # Afficher un message de succès et permettre le téléchargement du fichier
+            st.success(f"La facture a été générée avec succès : facture_{n_contrat}.pdf")
+            st.download_button(f'Télécharger la facture_{n_contrat}', data=open(f'facture_{n_contrat}.pdf', 'rb'), file_name=f'facture_{n_contrat}.pdf')
+
+        else:
+            st.error("Aucune consommation trouvée pour ce numéro de contrat.")
+
+    # Gestion des options du menu
+    if option == "Générer une facture de paiement":
+        n_contrat = st.text_input("Entrez le numéro de contrat pour générer la facture :")
+        numero_recu = st.selectbox("Nº Reçu :", list(range(1, 201)))
+        if st.button("Générer la facture"):
+            generer_facture_pdf(n_contrat)
 
 # Fermer la connexion à la base de données
 conn.close()
