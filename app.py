@@ -1,6 +1,7 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import pdfkit
 from datetime import datetime
 
 # Connexion à la base de données
@@ -19,14 +20,15 @@ option = st.selectbox("Choisissez une option :", [
     "Historique consommation & Paiment",
     "Stock",
     "ONEP",
-    "Charge Maintenance"
+    "Charge Maintenance",
+    "Générer une facture de paiement"
 ])
 
 
 def champs_remplis(*args):
     return all(arg not in ("", None) for arg in args)
 
-#sns.barplot(data=my_data, x='YEAR', y='APPEARANCES')
+
 ##################################################################################################################
 # Requête SQL pour obtenir les données nécessaires pour Consommation Historique & Payement
 query1 = '''
@@ -63,8 +65,8 @@ df_merged = pd.merge(df1, df2, how='left', left_on=['N_contrat', 'Mois_Consome']
 df_merged['Crédit'] = df_merged['Montant_dh'] - df_merged['Montant_paye'].where(df_merged['Montant_paye'].notna(), 0)
 
     # Affichage du DataFrame d'origine
-data_f = df_merged[['N_contrat', 'Mois_Consome', 'Date_réglement', 'N_recue', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Crédit']]
-data_ff = df_merged[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Crédit']]
+data_f = df_merged[['N_contrat', 'Mois_Consome', 'Date_réglement', 'N_recue', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye','Crédit']]
+data_ff = df_merged[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye','Crédit']]
 ##################################################################################################################
 
 
@@ -317,15 +319,28 @@ elif option == "Paiement de consommation":
 
     # Filtrer pour N_contrat sélectionné et Crédit != 0
     df_filtered = data_ff[(df_merged['N_contrat'] == N_contrat) & (df_merged['Crédit'] != 0)]
+    df_grouped = df_filtered.groupby(['N_contrat', 'Mois_Consome', 'Montant_dh']).agg({
+    'Montant_paye': 'sum'
+    }).reset_index()
 
+    # Calculer le crédit restant par mois en fonction des paiements
+    df_grouped['Crédit_rest'] = df_grouped['Montant_dh'] - df_grouped['Montant_paye']
+    df_grouped = df_grouped[df_grouped['Crédit_rest'] != 0]  # Garde les factures non payées
+
+    # Joindre pour obtenir le détail complet des colonnes originales
+    df_final = df_filtered.merge(df_grouped[['N_contrat', 'Mois_Consome', 'Crédit_rest']], on=['N_contrat', 'Mois_Consome'], how='inner')
+
+    N_mois = df_final['Mois_Consome'].nunique()
     # Afficher l'historique de consommation avec le crédit différent de 0
-    if not df_filtered.empty:
+    col1,col2 = st.columns(2)
+    if not df_final.empty:
         st.write("### Les factures Non payées :")
-        st.dataframe(df_filtered[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Crédit']])
-        Sum_credit = df_filtered['Crédit'].sum()
-        st.warning(f"Crédit Totale = {Sum_credit} dh")
+        st.dataframe(df_final[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye', 'Crédit_rest']])
+        Sum_credit = df_final['Crédit_rest'].sum()
+        col1.warning(f"Crédit Totale = {Sum_credit} dh")
+        col2.warning(f"Nº mois Non Payé : {N_mois}")
     else:
-        st.warning("L'abonné est à jour.")
+        col1.warning("L'abonné est à jour.")
 
 # Section Historique de consommation & Paiement
 elif option == "Historique consommation & Paiment":
@@ -710,6 +725,9 @@ elif option == "Charge Maintenance":
         st.dataframe(df)  # Utilisation de st.dataframe() pour afficher le tableau
     else:
         st.info("Aucune opération de maintenance trouvée pour ce mois.")
+
+elif option == "Générer une facture de paiement":
+    
 
 
 
