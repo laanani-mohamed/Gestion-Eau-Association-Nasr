@@ -10,8 +10,9 @@ db_path = 'Gestion_eau.db'
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
-# Menu de sélection pour l'utilisateur
-option = st.selectbox("Choisissez une option :", [
+# Utilisation de la barre latérale pour le menu de sélection
+st.sidebar.title("Association Gestion d'eau")
+option = st.sidebar.radio("Choisissez une option :", [
     "Ajouter un nouveau abonné",
     "Liste des abonnés",
     "Saisir une consommation",
@@ -568,6 +569,7 @@ elif option == "ONEP":
     option = st.selectbox("Choisissez une option :", ["Payer ONEP", "Crédit ONEP"])
     
     if option == "Payer ONEP":
+        st.subheader("Payer ONEP")
         Mois_consome = st.date_input("Mois consommé :", value=datetime.today())
         N_Recu = st.text_input("Nº Recu")
         Date_Reglement = st.date_input("Date du Regelement", value=datetime.today())
@@ -727,7 +729,7 @@ elif option == "Charge Maintenance":
         st.info("Aucune opération de maintenance trouvée pour ce mois.")
 
 elif option == "Générer une facture de paiement":
-
+    st.title("Générer une facture de paiement")
     def generer_facture_pdf(n_contrat):
         # Requête pour obtenir les détails des consommations pour le contrat donné
         query = f'''
@@ -738,7 +740,7 @@ elif option == "Générer une facture de paiement":
             LIMIT 1
         '''
         result = cursor.execute(query).fetchall()
-        
+
         # Requête pour obtenir le montant d'adhésion et le crédit restant
         query_adhision = f'''
             SELECT 
@@ -759,9 +761,9 @@ elif option == "Générer une facture de paiement":
         result_adhidion = cursor.execute(query_adhision).fetchall()
 
         if result_adhidion:
-            montant_adhision, credit = result_adhidion[0][1], result_adhidion[0][2]  # Extraire les valeurs
+            credit_Adhision, credit = result_adhidion[0][1], result_adhidion[0][2]  # Extraire les valeurs
         else:
-            montant_adhision, credit = 0, 0  # Valeurs par défaut si aucune donnée
+            credit_Adhision, credit = 0, 0  # Valeurs par défaut si aucune donnée
 
         if result:
             previous_quantity = 0
@@ -795,15 +797,19 @@ elif option == "Générer une facture de paiement":
             pdf.ln(10)  # Espacement
             pdf.cell(100, 10, f"N° Contrat : {n_contrat}")
             pdf.ln(10)
-            pdf.cell(100, 10, f"N° Recu : {numero_recu}")
+            pdf.cell(100, 10, f"N° Recu : {n_recu}")
             pdf.ln(10)
             pdf.cell(100, 10, f"Quantité Consommée Totale : {total_quantity_consumed}")
             pdf.ln(10)
             pdf.cell(100, 10, f"Montant à Payer : {amount_to_pay} MAD")
             pdf.ln(10)
-            pdf.cell(100, 10, f"Crédit Adhésion : {credit} MAD")
+            pdf.cell(100, 10, f"Crédit Adhision : {credit_Adhision} MAD")
             pdf.ln(10)
-
+            pdf.cell(100, 10, f"Crédit Adhision à payé : {credit_Adhision_a_paye} MAD")
+            pdf.ln(10)
+            pdf.cell(100, 10, f"Crédit de consommation à payé : {credit_consommation_a_paye} MAD")
+            pdf.ln(10)
+            
             # Détails de la consommation
             pdf.cell(200, 10, "Détails de la Consommation :", ln=True)
             pdf.ln(5)
@@ -833,12 +839,76 @@ elif option == "Générer une facture de paiement":
         else:
             st.error("Aucune consommation trouvée pour ce numéro de contrat.")
 
+    query_abnmt = '''
+    SELECT 
+        ip.N_contrat,
+        ip.Nom,
+        ip.Mnt_due AS Montant_Adhision,
+        COALESCE(ip.Mnt_due - SUM(ab.Mnt_paye), ip.Mnt_due) AS Credit
+    FROM 
+        info_personne ip
+    LEFT JOIN 
+        Abonnement ab
+    ON 
+        ip.N_contrat = ab.N_contrat
+    GROUP BY 
+        ip.N_contrat, ip.Nom, ip.Mnt_due
+    '''
+    
+    # Charger les données dans un DataFrame
+    df_abnmt = pd.read_sql_query(query_abnmt, conn)
+
+    # Requête pour récupérer les N_contrat et les Noms associés
+    query_contrat = '''
+    SELECT N_contrat, Nom FROM info_personne
+        '''
+    # Charger les données dans un DataFrame
+    df = pd.read_sql_query(query_contrat, conn)
+
     # Gestion des options du menu
-    if option == "Générer une facture de paiement":
-        n_contrat = st.text_input("Entrez le numéro de contrat pour générer la facture :")
-        numero_recu = st.selectbox("Nº Reçu :", list(range(1, 201)))
-        if st.button("Générer la facture"):
-            generer_facture_pdf(n_contrat)
+    
+    n_contrat = st.selectbox("Nº de contrat :", df['N_contrat'].tolist())
+    n_recu = st.selectbox("Nº Reçu :", list(range(1, 201)))
+    credit_consommation_a_paye = st.number_input("Crédit consommation à payé :")
+    credit_Adhision_a_paye = st.number_input("Crédit adhision à payé :")
+    st.subheader("Détail sur l'abonné")
+    # Filtrer pour N_contrat sélectionné et Crédit != 0
+    df_filtered = data_ff[(df_merged['N_contrat'] == n_contrat) & (df_merged['Crédit'] != 0)]
+    df_grouped = df_filtered.groupby(['N_contrat', 'Mois_Consome', 'Montant_dh']).agg({
+    'Montant_paye': 'sum'
+    }).reset_index()
+
+    # Calculer le crédit restant par mois en fonction des paiements
+    df_grouped['Crédit_rest'] = df_grouped['Montant_dh'] - df_grouped['Montant_paye']
+    df_grouped = df_grouped[df_grouped['Crédit_rest'] != 0]  # Garde les factures non payées
+
+    # Joindre pour obtenir le détail complet des colonnes originales
+    df_final = df_filtered.merge(df_grouped[['N_contrat', 'Mois_Consome', 'Crédit_rest']], on=['N_contrat', 'Mois_Consome'], how='inner')
+
+    N_mois = df_final['Mois_Consome'].nunique()
+    col3, col4 = st.columns(2)
+    # Afficher le nom associé au N_contrat sélectionné
+    selected_name = df_abnmt[df_abnmt['N_contrat'] == n_contrat]['Nom'].iloc[0]
+
+    # Récupérer le crédit associé au N_contrat sélectionné
+    Credit_abnmt = df_abnmt[df_abnmt['N_contrat'] == n_contrat]['Credit'].iloc[0]
+
+    # Afficher l'historique de consommation avec le crédit différent de 0
+    col1,col2 = st.columns(2)
+    if not df_final.empty:
+        st.write("### Les factures Non payées :")
+        st.dataframe(df_final[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye', 'Crédit_rest']])
+        Sum_credit = df_final['Crédit_rest'].sum()
+        col1.warning(f"Crédit Consommation = {Sum_credit} dh")
+        col2.info(f"Nº mois Non Payé : {N_mois}")
+        col3.info(f"Nom de l'abonné : {selected_name}")
+        col4.warning(f"Crédit Adhision: {Credit_abnmt:.2f} dh")
+    else:
+        col1.warning("L'abonné est à jour.")
+
+
+    if st.button("Générer la facture"):
+        generer_facture_pdf(n_contrat)
 
 # Fermer la connexion à la base de données
 conn.close()
