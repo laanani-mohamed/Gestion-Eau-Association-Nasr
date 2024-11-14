@@ -22,7 +22,8 @@ option = st.sidebar.radio("Choisissez une option :", [
     "Stock",
     "ONEP",
     "Charge Maintenance",
-    "Générer une facture de paiement"
+    "Générer une facture de paiement",
+    "Mouvement de la caisse"
 ])
 
 
@@ -728,6 +729,7 @@ elif option == "Charge Maintenance":
     else:
         st.info("Aucune opération de maintenance trouvée pour ce mois.")
 
+# Generer les facture
 elif option == "Générer une facture de paiement":
     st.title("Générer une facture de paiement")
     def generer_facture_pdf(n_contrat):
@@ -909,6 +911,72 @@ elif option == "Générer une facture de paiement":
 
     if st.button("Générer la facture"):
         generer_facture_pdf(n_contrat)
+
+# Mouvement de caise
+elif option == "Mouvement de la caisse":
+    st.header("Mouvements de la Caisse")
+
+    # Récupérer les données de la vue Mouvements_Caisse, classées par date
+    query = "SELECT * FROM Mouvements_Caisse ORDER BY Date_Mouvement ASC"
+    mouvements = pd.read_sql_query(query, conn)
+
+    # Convertir la colonne de date en format datetime et enlever l'heure
+    mouvements['Date_Mouvement'] = pd.to_datetime(mouvements['Date_Mouvement']).dt.date
+
+    # Affichage initial des mouvements
+    st.dataframe(mouvements, height=400)
+
+    # Calcule de entre et sortie et difference
+    col1,col2,col3 = st.columns(3)
+    # Calcul de l'Entrée (montants positifs), Sortie (montants négatifs), et Différence
+    entre_1 = mouvements[mouvements['Montant'] >= 0]['Montant'].sum()
+    sortie_1 = abs(mouvements[mouvements['Montant'] < 0]['Montant'].sum())
+    difference_1 = entre_1 - sortie_1
+
+    # Affichage des résultats dans les colonnes
+    col1.info(f"Entrée : {entre_1}")
+    col2.info(f"Sortie : {sortie_1}")
+    col3.warning(f"Différence : {difference_1}")
+
+
+    st.subheader("Filtrages")
+    col1,col2,col3 = st.columns(3)
+
+    # Filtre pour le mois et l'année
+    annees = mouvements['Date_Mouvement'].apply(lambda x: x.year).unique()
+    mois = ["Tous"] + list(range(1, 13))  # Ajout de l'option "Tous" pour les mois
+
+    annee_selection = col1.selectbox("Sélectionnez une année", sorted(annees), index=0)
+    mois_selection = col2.selectbox("Sélectionnez un mois", mois, index=0, format_func=lambda x: "Tous" if x == "Tous" else f"{x:02d}")
+
+    # Filtrage des données en fonction de l'année, le mois et le motif
+    mouvements_filtrees = mouvements[mouvements['Date_Mouvement'].apply(lambda x: x.year) == annee_selection]
+
+    # Appliquer le filtre de mois uniquement si un mois spécifique est sélectionné
+    if mois_selection != "Tous":
+        mouvements_filtrees = mouvements_filtrees[mouvements_filtrees['Date_Mouvement'].apply(lambda x: x.month) == mois_selection]
+
+    # Filtre pour le motif
+    motifs = mouvements['Motif'].unique()
+    motif_selection = col3.selectbox("Sélectionnez un motif", ["Tous"] + list(motifs), index=0)
+    
+    if motif_selection != "Tous":
+        mouvements_filtrees = mouvements_filtrees[mouvements_filtrees['Motif'] == motif_selection]
+
+    # Affichage du tableau filtré
+    st.dataframe(mouvements_filtrees)
+
+    col1,col2,col3 = st.columns(3)
+    # Calcul de l'Entrée (montants positifs), Sortie (montants négatifs), et Différence
+    entre = mouvements_filtrees[mouvements_filtrees['Montant'] >= 0]['Montant'].sum()
+    sortie = abs(mouvements_filtrees[mouvements_filtrees['Montant'] < 0]['Montant'].sum())
+    difference = entre - sortie
+
+    # Affichage des résultats dans les colonnes
+    col1.info(f"Entrée : {entre}")
+    col2.info(f"Sortie : {sortie}")
+    col3.warning(f"Différence : {difference}")
+
 
 # Fermer la connexion à la base de données
 conn.close()
