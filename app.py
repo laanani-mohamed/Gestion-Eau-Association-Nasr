@@ -23,7 +23,8 @@ option = st.sidebar.radio("Choisissez une option :", [
     "ONEP",
     "Charge Maintenance",
     "Générer une facture de paiement",
-    "Mouvement de la caisse"
+    "Mouvement de la caisse",
+    "Vérification Consommation"
 ])
 
 
@@ -77,7 +78,7 @@ if option == "Ajouter un nouveau abonné":
     st.subheader("Ajouter un nouveau abonné")
     N_contrat = st.text_input("Nº de contrat :")
     Nom = st.text_input("Nom Complet :")
-    N_conpteur_B = st.text_input("Nº compteur Block :")
+    N_conpteur_B = st.selectbox("Nº compteur Block :", list(range(1, 16)))
     N_conpteur_P = st.text_input("Nª compteur Personnel :")
     Mnt_due = st.number_input("Frais d'adhision :", min_value=0.0)
     Date_Adhesion = st.date_input("Date d'adhision : ")
@@ -156,63 +157,112 @@ if option == "Liste des abonnés":
     st.dataframe(filtered_data)
 
 # Saisir une consommation
-elif option == "Saisir une consommation":
+if option == "Saisir une consommation":
     st.subheader("Saisir une consommation")
-
-    # Requête pour récupérer les N_contrat et les Noms associés
-    query = '''
-    SELECT N_contrat, Nom FROM info_personne
-    '''
-    # Charger les données dans un DataFrame
-    data = pd.read_sql_query(query, conn)
-
-    # Afficher uniquement le sélecteur pour le N_contrat
-    N_contrat = st.selectbox("Nº de contrat :", data['N_contrat'].tolist())
-    col1, col2, col3 = st.columns(3)
-    # Afficher le nom associé au N_contrat sélectionné
-    selected_name = data[data['N_contrat'] == N_contrat]['Nom'].iloc[0]
-    col1.info(f"Nom : {selected_name}")
-
-    # Récupérer la dernière consommation pour le N_contrat sélectionné
-    query_consumption = '''
-    SELECT Date_consome, Quantite 
-    FROM Qte_consommation 
-    WHERE N_contrat = ? 
-    ORDER BY Date_consome DESC 
-    LIMIT 1
-    '''
-    last_consumption = pd.read_sql_query(query_consumption, conn, params=(N_contrat,))
-    # Afficher la dernière consommation et la date
-    if not last_consumption.empty:
-        last_date = last_consumption['Date_consome'].iloc[0]
-        last_index = last_consumption['Quantite'].iloc[0]
-        last_date = datetime.strptime(last_date, '%Y-%m-%d')
-        col2.info(f"Index précedent : {last_index} m³")
-        col3.info(f"Pour :  {last_date.strftime('%m - %Y')}")
-    else:
-        col2.info("Aucune consommation enregistrée.")
-    # Saisie de la quantité consommée
-    Quantite = st.number_input("Nouveau Index :", min_value=0.0)
-
-    # Saisie de la date de consommation
-    Date_consome = st.date_input("Mois de consommation :")
-
-
-    # Bouton pour enregistrer la consommation
-    if st.button("Enregistrer"):
-        # Code pour enregistrer la consommation dans la base de données
-        # Exemple d'insertion dans la table (à adapter selon votre schéma)
-        insert_query = '''
-        INSERT INTO Qte_Consommation (N_contrat, Date_consome, Quantite)
-        VALUES (?, ?, ?)
+    option2 = st.selectbox("Choisissez une option :", ["Consommation Abonné","Consommation Block"])
+    
+    if option2 == "Consommation Abonné":
+        # Requête pour récupérer les N_contrat et les Noms associés
+        query = '''
+        SELECT N_contrat, Nom FROM info_personne
         '''
-        # Exécution de la requête avec les valeurs saisies
-        conn.execute(insert_query, (N_contrat, Date_consome, Quantite))
-        conn.commit()
-        st.success("Consommation enregistrée avec succès !")
+        # Charger les données dans un DataFrame
+        data = pd.read_sql_query(query, conn)
+
+        # Afficher uniquement le sélecteur pour le N_contrat
+        N_contrat = st.selectbox("Nº de contrat :", data['N_contrat'].tolist())
+        col1, col2, col3 = st.columns(3)
+        # Afficher le nom associé au N_contrat sélectionné
+        selected_name = data[data['N_contrat'] == N_contrat]['Nom'].iloc[0]
+        col1.info(f"Nom : {selected_name}")
+
+        # Récupérer la dernière consommation pour le N_contrat sélectionné
+        query_consumption = '''
+        SELECT Date_consome, Quantite 
+        FROM Qte_consommation 
+        WHERE N_contrat = ? 
+        ORDER BY Date_consome DESC 
+        LIMIT 1
+        '''
+        last_consumption = pd.read_sql_query(query_consumption, conn, params=(N_contrat,))
+        # Afficher la dernière consommation et la date
+        if not last_consumption.empty:
+            last_date = last_consumption['Date_consome'].iloc[0]
+            last_index = last_consumption['Quantite'].iloc[0]
+            last_date = datetime.strptime(last_date, '%Y-%m-%d')
+            col2.info(f"Index précedent : {last_index} m³")
+            col3.info(f"Pour :  {last_date.strftime('%m - %Y')}")
+        else:
+            col2.info("Aucune consommation enregistrée.")
+        # Saisie de la quantité consommée
+        Quantite = st.number_input("Nouveau Index :", min_value=0.0)
+
+        # Saisie de la date de consommation
+        Date_consome = st.date_input("Mois de consommation :")
+
+
+        # Bouton pour enregistrer la consommation
+        if st.button("Enregistrer"):
+            # Code pour enregistrer la consommation dans la base de données
+            # Exemple d'insertion dans la table (à adapter selon votre schéma)
+            insert_query = '''
+            INSERT INTO Qte_Consommation (N_contrat, Date_consome, Quantite)
+            VALUES (?, ?, ?)
+            '''
+            # Exécution de la requête avec les valeurs saisies
+            conn.execute(insert_query, (N_contrat, Date_consome, Quantite))
+            conn.commit()
+            st.success("Consommation enregistrée avec succès !")
+
+    if option2 == "Consommation Block":
+        st.title("Ajouter des données à la table Blocks")
+        # Colonnes pour saisir les informations
+        
+        Block_ID = st.selectbox("Nº Block :", list(range(1, 16)))
+        # Récupérer la dernière consommation pour le N_contrat sélectionné
+        query_block = '''
+        SELECT Date_consome, Index_m3 
+        FROM Blocks
+        WHERE Block_ID = ? 
+        ORDER BY Date_consome DESC 
+        LIMIT 1
+        '''
+        Block = pd.read_sql_query(query_block, conn, params=(Block_ID,))
+        col1,col2 = st.columns(2)
+        # Afficher la dernière consommation et la date
+        if not Block.empty:
+            last_date = Block['Date_consome'].iloc[0]
+            last_date = datetime.strptime(last_date, '%Y-%m-%d')
+            last_index = Block['Index_m3'].iloc[0]
+            col1.info(f"Index précedent : {last_index} m³")
+            col2.info(f"Pour :  {last_date.strftime('%m - %Y')}")
+        else:
+            st.warning("Aucune consommation enregistrée.")
+            
+
+        Index_m3 = st.number_input("Index m3 :", min_value=0.0, format="%.2f")
+        Date_consome = st.date_input("Date de consommation :", value=datetime.today())
+
+        # Bouton pour insérer les données
+        if st.button("Ajouter"):
+            try:
+                # Insérer les données dans la table
+                cursor.execute('''
+                INSERT INTO Blocks (Block_ID, Index_m3, Date_consome)
+                VALUES (?, ?, ?)
+                ''', (Block_ID, Index_m3, Date_consome))
+                conn.commit()
+                st.success("Données ajoutées avec succès !")
+            except Exception as e:
+                st.error(f"Une erreur s'est produite : {e}")
+
+        # Afficher les données existantes dans la table
+        st.header("Données existantes dans la table Blocks")
+        blocks_df = pd.read_sql_query("SELECT * FROM Blocks", conn)
+        st.dataframe(blocks_df)
 
 # Paiement d'abonnement
-elif option == "Paiement d'abonnement":
+if option == "Paiement d'abonnement":
     st.subheader("Paiement d'abonnement")
     
     # Requête pour récupérer les N_contrat et les Noms associés, ainsi que le crédit
@@ -279,7 +329,7 @@ elif option == "Paiement d'abonnement":
         st.warning("Aucun Historique de paiement trouvé")
 
 # Paiement de consommation
-elif option == "Paiement de consommation":
+if option == "Paiement de consommation":
     st.subheader("Paiement de consommation")
     
     # Requête pour récupérer les N_contrat et les Noms associés
@@ -348,7 +398,7 @@ elif option == "Paiement de consommation":
         col1.warning("L'abonné est à jour.")
 
 # Section Historique de consommation & Paiement
-elif option == "Historique consommation & Paiment":
+if option == "Historique consommation & Paiment":
     st.subheader("Historique de consommation & Paiment")
 
     st.dataframe(data_f)
@@ -395,7 +445,7 @@ elif option == "Historique consommation & Paiment":
     st.dataframe(data_f)
 
 # Gestion du Stock
-elif option == "Stock":
+if option == "Stock":
     st.title("Gestion du Stock")
     # Options de gestion du stock
     option = st.selectbox(
@@ -535,7 +585,7 @@ elif option == "Stock":
         st.write(stock_df)
 
 # Situation avec ONEP
-elif option == "ONEP":
+if option == "ONEP":
     st.subheader("Situation Avec ONEP")
     query = '''
     SELECT 
@@ -630,7 +680,7 @@ elif option == "ONEP":
                     st.error(f"Erreur lors de l'enregistrement du crédit ONEP : {e}")
 
 # Charge Maintenance
-elif option == "Charge Maintenance":
+if option == "Charge Maintenance":
     st.title("Gestion de la Maintenance")
 
     # Option d'insertion d'une nouvelle opération de maintenance
@@ -733,7 +783,7 @@ elif option == "Charge Maintenance":
         st.info("Aucune opération de maintenance trouvée pour ce mois.")
 
 # Generer les facture
-elif option == "Générer une facture de paiement":
+if option == "Générer une facture de paiement":
     st.title("Générer une facture de paiement")
     def generer_facture_pdf(n_contrat):
         # Requête pour obtenir les détails des consommations pour le contrat donné
@@ -899,7 +949,7 @@ elif option == "Générer une facture de paiement":
         generer_facture_pdf(n_contrat)
 
 # Mouvement de caise
-elif option == "Mouvement de la caisse":
+if option == "Mouvement de la caisse":
     st.header("Mouvements de la Caisse")
 
     # Récupérer les données de la vue Mouvements_Caisse, classées par date
@@ -963,6 +1013,67 @@ elif option == "Mouvement de la caisse":
     col2.info(f"Sortie : {sortie:.2f}")
     col3.warning(f"Différence : {difference:.2f}")
 
+# Comparer comsomation du nlock avec les abonnes
+if option == "Vérification Consommation":
+    st.title("Vérification Consommation Par Block")
+    
+    # Colonnes pour les sélections utilisateur
+    col1, col2 = st.columns(2)
+    N_Block = col1.selectbox("Nº Block :", list(range(1, 16)))
+    
+    # Ajouter l'option "Tous" dans la sélection des mois
+    mois_options = ['Tous'] + [f'{month:02d}-{datetime.now().year}' for month in range(1, 13)]
+    Mois_choisi = col2.selectbox("Mois de consommation :", mois_options)
+    
+    # Préparer les conditions SQL en fonction de l'option choisie
+    mois_condition = ""
+    params = [N_Block]
+    
+    if Mois_choisi != "Tous":
+        mois_condition = "AND strftime('%m-%Y', Date_consome) = ?"
+        params.append(Mois_choisi)
+    
+    # Requête SQL pour les données du block
+    blocks_query = f'''
+    SELECT 
+        Block_ID AS N_Block, 
+        strftime('%m-%Y', Date_consome) AS Mois_Consome,
+        Index_m3
+    FROM 
+        Blocks
+    WHERE 
+        Block_ID = ?
+        {mois_condition}
+    '''
+    blocks_df = pd.read_sql_query(blocks_query, conn, params=params)
+    
+    # Requête SQL pour les données des abonnés
+    conso_query = f'''
+    SELECT 
+        qc.N_contrat,
+        ip.Nom,
+        ip.N_conpteur_B AS N_Block,
+        strftime('%m-%Y', qc.Date_consome) AS Mois_Consome,
+        qc.Quantite AS Index_m3
+    FROM 
+        Qte_Consommation qc
+    JOIN 
+        info_personne ip ON ip.N_contrat = qc.N_contrat
+    WHERE 
+        ip.N_conpteur_B = ?
+        {mois_condition}
+    '''
+    df2 = pd.read_sql_query(conso_query, conn, params=params)
+    
+    # Affichage des données
+    st.dataframe(df2)
+    
+    # Calculs et affichage des résultats
+    col1, col2 = st.columns(2)
+    index_block = blocks_df['Index_m3'].sum() if not blocks_df.empty else 0
+    sum_index_abonne = df2['Index_m3'].sum() if not df2.empty else 0
+    col1.info(f"Index Compteur Block = {index_block} m3")
+    col2.info(f"Consommation Totale = {sum_index_abonne} m3")
 
 # Fermer la connexion à la base de données
 conn.close()
