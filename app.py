@@ -60,13 +60,13 @@ query2 = '''
     '''
 df2 = pd.read_sql_query(query2, conn)
 
-    # Jointure des DataFrames
+# Jointure des DataFrames
 df_merged = pd.merge(df1, df2, how='left', left_on=['N_contrat', 'Mois_Consome'], right_on=['N_contrat', 'Mois_Payement'])
 
     # Calculer la colonne Crédit
 df_merged['Crédit'] = df_merged['Montant_dh'] - df_merged['Montant_paye'].where(df_merged['Montant_paye'].notna(), 0)
 
-    # Affichage du DataFrame d'origine
+# Affichage du DataFrame d'origine
 data_f = df_merged[['N_contrat', 'Mois_Consome', 'Date_réglement', 'N_recue', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye','Crédit']]
 data_ff = df_merged[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye','Crédit']]
 ##################################################################################################################
@@ -76,11 +76,11 @@ data_ff = df_merged[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3',
 if option == "Ajouter un nouveau abonné":
     st.subheader("Ajouter un nouveau abonné")
     N_contrat = st.text_input("Nº de contrat :")
+    Nom = st.text_input("Nom Complet :")
     N_conpteur_B = st.text_input("Nº compteur Block :")
     N_conpteur_P = st.text_input("Nª compteur Personnel :")
-    Nom = st.text_input("Nom Complet :")
-    Mnt_due = st.number_input("Frais d'abonnement :", min_value=0.0)
-    Date_Adhesion = st.date_input("Date d'adhésion : ")
+    Mnt_due = st.number_input("Frais d'adhision :", min_value=0.0)
+    Date_Adhesion = st.date_input("Date d'adhision : ")
     Adresse = st.text_input("Adresse :")
     
     if st.button("Enregistrer"):
@@ -168,10 +168,10 @@ elif option == "Saisir une consommation":
 
     # Afficher uniquement le sélecteur pour le N_contrat
     N_contrat = st.selectbox("Nº de contrat :", data['N_contrat'].tolist())
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     # Afficher le nom associé au N_contrat sélectionné
     selected_name = data[data['N_contrat'] == N_contrat]['Nom'].iloc[0]
-    col1.info(f"Nom de l'abonné : {selected_name}")
+    col1.info(f"Nom : {selected_name}")
 
     # Récupérer la dernière consommation pour le N_contrat sélectionné
     query_consumption = '''
@@ -187,14 +187,15 @@ elif option == "Saisir une consommation":
         last_date = last_consumption['Date_consome'].iloc[0]
         last_index = last_consumption['Quantite'].iloc[0]
         last_date = datetime.strptime(last_date, '%Y-%m-%d')
-        col2.info(f"Index précedent : {last_index} m³ pour {last_date.strftime('%m - %Y')}")
+        col2.info(f"Index précedent : {last_index} m³")
+        col3.info(f"Pour :  {last_date.strftime('%m - %Y')}")
     else:
         col2.info("Aucune consommation enregistrée.")
     # Saisie de la quantité consommée
     Quantite = st.number_input("Nouveau Index :", min_value=0.0)
 
     # Saisie de la date de consommation
-    Date_consome = st.date_input("Date de consommation :")
+    Date_consome = st.date_input("Mois de consommation :")
 
 
     # Bouton pour enregistrer la consommation
@@ -248,6 +249,8 @@ elif option == "Paiement d'abonnement":
 
     N_recue = st.selectbox("Nº de reçu : ", list(range(1, 2001)))
     Mnt_paye = st.number_input("Montant payé :", min_value=0.0)
+    if Mnt_paye > Credit:
+        st.error(f"Montant payé dépasse crédit {Credit:.2f} dh. Veuillez corriger.")
     Date_payement = st.date_input("Date de régelement :")
     if st.button("Enregistrer paiement"):
         if champs_remplis(N_contrat, N_recue, Mnt_paye, Date_payement):
@@ -735,14 +738,14 @@ elif option == "Générer une facture de paiement":
     def generer_facture_pdf(n_contrat):
         # Requête pour obtenir les détails des consommations pour le contrat donné
         query = f'''
-            SELECT Date_consome, Quantite
+            SELECT N_contrat, Date_consome, Quantite
             FROM Qte_Consommation
             WHERE n_contrat = '{n_contrat}'
             ORDER BY Date_consome DESC
             LIMIT 1
         '''
         result = cursor.execute(query).fetchall()
-
+        
         # Requête pour obtenir le montant d'adhésion et le crédit restant
         query_adhision = f'''
             SELECT 
@@ -801,36 +804,19 @@ elif option == "Générer une facture de paiement":
             pdf.ln(10)
             pdf.cell(100, 10, f"N° Recu : {n_recu}")
             pdf.ln(10)
-            pdf.cell(100, 10, f"Quantité Consommée Totale : {total_quantity_consumed}")
+            pdf.cell(100, 10, f"Mois de consommation : {date_consomation} ")
             pdf.ln(10)
-            pdf.cell(100, 10, f"Montant à Payer : {amount_to_pay} MAD")
+            pdf.cell(100, 10, f"Quantité Consommée : {total_quantity_consumed}")
             pdf.ln(10)
-            pdf.cell(100, 10, f"Crédit Adhision : {credit_Adhision} MAD")
+            pdf.cell(100, 10, f"Montant à Payer : {amount_to_pay} dh")
             pdf.ln(10)
-            pdf.cell(100, 10, f"Crédit Adhision à payé : {credit_Adhision_a_paye} MAD")
+            pdf.cell(100, 10, f"Crédit Adhision : {credit} dh")
             pdf.ln(10)
-            pdf.cell(100, 10, f"Crédit de consommation à payé : {credit_consommation_a_paye} MAD")
+            pdf.cell(100, 10, f"Crédit Adhision à payé : {credit_Adhision_a_paye} dh")
+            pdf.ln(10)
+            pdf.cell(100, 10, f"Crédit de consommation à payé : {credit_consommation_a_paye} dh")
             pdf.ln(10)
             
-            # Détails de la consommation
-            pdf.cell(200, 10, "Détails de la Consommation :", ln=True)
-            pdf.ln(5)
-            pdf.set_font("Arial", 'B', 10)
-            pdf.cell(50, 10, "Date Consommation", border=1, align='C')
-            pdf.cell(50, 10, "Index Précédent", border=1, align='C')
-            pdf.cell(50, 10, "Index Actuel", border=1, align='C')
-            pdf.cell(50, 10, "Quantité Consommée", border=1, align='C')
-            pdf.ln()
-
-            # Ajouter les données des consommations
-            pdf.set_font("Arial", '', 10)
-            for date_consomation, prev_quantity, new_quantity, quantity_consumed in details:
-                pdf.cell(50, 10, date_consomation, border=1, align='C')
-                pdf.cell(50, 10, str(prev_quantity), border=1, align='C')
-                pdf.cell(50, 10, str(new_quantity), border=1, align='C')
-                pdf.cell(50, 10, str(quantity_consumed), border=1, align='C')
-                pdf.ln()
-
             # Sauvegarder le fichier PDF
             pdf.output(f"facture_{n_contrat}.pdf")
 
@@ -934,9 +920,9 @@ elif option == "Mouvement de la caisse":
     difference_1 = entre_1 - sortie_1
 
     # Affichage des résultats dans les colonnes
-    col1.info(f"Entrée : {entre_1}")
-    col2.info(f"Sortie : {sortie_1}")
-    col3.warning(f"Différence : {difference_1}")
+    col1.info(f"Entrée : {entre_1:.2f}")
+    col2.info(f"Sortie : {sortie_1:.2f}")
+    col3.warning(f"Différence : {difference_1:.2f}")
 
 
     st.subheader("Filtrages")
@@ -973,9 +959,9 @@ elif option == "Mouvement de la caisse":
     difference = entre - sortie
 
     # Affichage des résultats dans les colonnes
-    col1.info(f"Entrée : {entre}")
-    col2.info(f"Sortie : {sortie}")
-    col3.warning(f"Différence : {difference}")
+    col1.info(f"Entrée : {entre:.2f}")
+    col2.info(f"Sortie : {sortie:.2f}")
+    col3.warning(f"Différence : {difference:.2f}")
 
 
 # Fermer la connexion à la base de données
