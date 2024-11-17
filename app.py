@@ -3,10 +3,11 @@ import sqlite3
 import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
+import os
 
 # Connexion à la base de données
-db_path = 'Gestion_eau.db'
-
+#db_path = 'Gestion_eau.db'
+db_path = os.path.join(os.path.dirname(__file__), 'Gestion_eau.db')
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
@@ -158,10 +159,11 @@ if option == "Liste des abonnés":
 
 # Saisir une consommation
 if option == "Saisir une consommation":
-    st.subheader("Saisir une consommation")
+    st.title("Saisir une consommation")
     option2 = st.selectbox("Choisissez une option :", ["Consommation Abonné","Consommation Block"])
     
     if option2 == "Consommation Abonné":
+        st.subheader("Ajouter Consommation à un Abonné")
         # Requête pour récupérer les N_contrat et les Noms associés
         query = '''
         SELECT N_contrat, Nom FROM info_personne
@@ -174,7 +176,7 @@ if option == "Saisir une consommation":
         col1, col2, col3 = st.columns(3)
         # Afficher le nom associé au N_contrat sélectionné
         selected_name = data[data['N_contrat'] == N_contrat]['Nom'].iloc[0]
-        col1.info(f"Nom : {selected_name}")
+        col1.info(f"{selected_name}")
 
         # Récupérer la dernière consommation pour le N_contrat sélectionné
         query_consumption = '''
@@ -190,8 +192,8 @@ if option == "Saisir une consommation":
             last_date = last_consumption['Date_consome'].iloc[0]
             last_index = last_consumption['Quantite'].iloc[0]
             last_date = datetime.strptime(last_date, '%Y-%m-%d')
-            col2.info(f"Index précedent : {last_index} m³")
-            col3.info(f"Pour :  {last_date.strftime('%m - %Y')}")
+            col2.info(f"{last_index} m³")
+            col3.info(f"{last_date.strftime('%m - %Y')}")
         else:
             col2.info("Aucune consommation enregistrée.")
         # Saisie de la quantité consommée
@@ -215,7 +217,7 @@ if option == "Saisir une consommation":
             st.success("Consommation enregistrée avec succès !")
 
     if option2 == "Consommation Block":
-        st.title("Ajouter des données à la table Blocks")
+        st.subheader("Ajouter Consommation à un Block")
         # Colonnes pour saisir les informations
         
         Block_ID = st.selectbox("Nº Block :", list(range(1, 16)))
@@ -234,8 +236,8 @@ if option == "Saisir une consommation":
             last_date = Block['Date_consome'].iloc[0]
             last_date = datetime.strptime(last_date, '%Y-%m-%d')
             last_index = Block['Index_m3'].iloc[0]
-            col1.info(f"Index précedent : {last_index} m³")
-            col2.info(f"Pour :  {last_date.strftime('%m - %Y')}")
+            col1.info(f"{last_index} m³")
+            col2.info(f"{last_date.strftime('%m - %Y')}")
         else:
             st.warning("Aucune consommation enregistrée.")
             
@@ -256,9 +258,24 @@ if option == "Saisir une consommation":
             except Exception as e:
                 st.error(f"Une erreur s'est produite : {e}")
 
-        # Afficher les données existantes dans la table
-        st.header("Données existantes dans la table Blocks")
-        blocks_df = pd.read_sql_query("SELECT * FROM Blocks", conn)
+        # Calculer la quantité consommée avec gestion des valeurs manquantes
+        st.header("Suivi des Blocks")
+        query = '''
+        SELECT 
+            Block_ID,
+            strftime('%m-%Y', Date_consome) AS Mois_Annee,
+            Index_m3,
+            Index_m3 - COALESCE(
+                LAG(Index_m3) OVER (
+                    PARTITION BY Block_ID
+                    ORDER BY strftime('%Y-%m', Date_consome)
+                ), 0
+            ) AS Qte_consome
+        FROM Blocks
+        '''
+        blocks_df = pd.read_sql_query(query, conn)
+
+        # Afficher les données dans Streamlit
         st.dataframe(blocks_df)
 
 # Paiement d'abonnement
@@ -952,6 +969,25 @@ if option == "Générer une facture de paiement":
 if option == "Mouvement de la caisse":
     st.header("Mouvements de la Caisse")
 
+# Création de la vue Mouvements_Caisse
+    cursor.execute('''
+    CREATE VIEW IF NOT EXISTS Mouvements_Caisse AS
+    SELECT N_contrat AS ID, Date_payement AS Date_Mouvement, 'Adhision' AS Motif, Mnt_paye AS Montant
+    FROM Abonnement
+    UNION ALL
+    SELECT N_contrat AS ID, Date_payement AS Date_Mouvement, 'Consommation' AS Motif, Mnt_paye AS Montant
+    FROM Pay_Consommation
+    UNION ALL
+    SELECT ID_Payment AS ID, Date_Reglement AS Date_Mouvement, 'ONEP' AS Motif, Mnt_paye AS Montant
+    FROM ONEP_Payment
+    UNION ALL
+    SELECT ID_Maintenance AS ID, Date_operation AS Date_Mouvement, 'Maintenance' AS Motif, Mnt_ouvrier AS Montant 
+    FROM Maintenance
+    UNION ALL
+    SELECT ID_Achat AS ID, Date_Achat AS Date_Mouvement, 'Charge Materiel' AS Motif, -Montant_total AS Montant
+    FROM Produit_Acheter
+    ''')
+
     # Récupérer les données de la vue Mouvements_Caisse, classées par date
     query = "SELECT * FROM Mouvements_Caisse ORDER BY Date_Mouvement ASC"
     mouvements = pd.read_sql_query(query, conn)
@@ -1015,7 +1051,7 @@ if option == "Mouvement de la caisse":
 
 # Comparer comsomation du nlock avec les abonnes
 if option == "Vérification Consommation":
-    st.title("Vérification Consommation Par Block")
+    st.title("Consommation Par Block")
     
     # Colonnes pour les sélections utilisateur
     col1, col2 = st.columns(2)
@@ -1035,12 +1071,17 @@ if option == "Vérification Consommation":
     
     # Requête SQL pour les données du block
     blocks_query = f'''
-    SELECT 
-        Block_ID AS N_Block, 
-        strftime('%m-%Y', Date_consome) AS Mois_Consome,
-        Index_m3
-    FROM 
-        Blocks
+        SELECT 
+            Block_ID AS N_Block,
+            strftime('%m-%Y', Date_consome) AS Mois_Annee,
+            Index_m3,
+            Index_m3 - COALESCE(
+                LAG(Index_m3) OVER (
+                    PARTITION BY Block_ID
+                    ORDER BY strftime('%Y-%m', Date_consome)
+                ), 0
+            ) AS Qte_consome
+        FROM Blocks
     WHERE 
         Block_ID = ?
         {mois_condition}
@@ -1054,7 +1095,13 @@ if option == "Vérification Consommation":
         ip.Nom,
         ip.N_conpteur_B AS N_Block,
         strftime('%m-%Y', qc.Date_consome) AS Mois_Consome,
-        qc.Quantite AS Index_m3
+        qc.Quantite AS Index_m3,
+        qc.Quantite - COALESCE(
+            LAG(qc.Quantite) OVER (
+                PARTITION BY qc.N_contrat
+                ORDER BY strftime('%Y-%m', qc.Date_consome)
+            ), 0
+        ) AS Qte_consome
     FROM 
         Qte_Consommation qc
     JOIN 
@@ -1064,16 +1111,19 @@ if option == "Vérification Consommation":
         {mois_condition}
     '''
     df2 = pd.read_sql_query(conso_query, conn, params=params)
-    
+  
     # Affichage des données
     st.dataframe(df2)
     
     # Calculs et affichage des résultats
     col1, col2 = st.columns(2)
     index_block = blocks_df['Index_m3'].sum() if not blocks_df.empty else 0
-    sum_index_abonne = df2['Index_m3'].sum() if not df2.empty else 0
-    col1.info(f"Index Compteur Block = {index_block} m3")
+    sum_index_abonne = df2['Qte_consome'].sum() if not df2.empty else 0
+    col1.info(f"Qte Compteur Block = {index_block} m3")
     col2.info(f"Consommation Totale = {sum_index_abonne} m3")
+
 
 # Fermer la connexion à la base de données
 conn.close()
+
+
