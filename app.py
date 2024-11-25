@@ -77,22 +77,34 @@ data_ff = df_merged[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3',
 # Ajouter un nouveau abonné
 if option == "Ajouter un nouveau abonné":
     st.subheader("Ajouter un nouveau abonné")
-    N_contrat = st.text_input("Nº de contrat :")
+    col1, col2 = st.columns(2)
+    col3, col4 = st.columns(2)
+    col5, col6 = st.columns(2)
+    N_contrat = col1.text_input("Nº de contrat :")
+    CIN = col2.text_input("Nº CIN :")
     Nom = st.text_input("Nom Complet :")
-    N_conpteur_B = st.selectbox("Nº compteur Block :", list(range(1, 16)))
-    N_conpteur_P = st.text_input("Nª compteur Personnel :")
-    Mnt_due = st.number_input("Frais d'adhision :", min_value=0.0)
-    Date_Adhesion = st.date_input("Date d'adhision : ")
+    N_conpteur_B = col3.selectbox("Nº compteur Block :", list(range(1, 16)))
+    N_conpteur_P = col4.text_input("Nº compteur Personnel :")
+    Mnt_due = col5.number_input("Frais d'adhision :", min_value=0.0)
+    Date_Adhesion = col6.date_input("Date d'adhision : ")
     Adresse = st.text_input("Adresse :")
     
     if st.button("Enregistrer"):
-        if champs_remplis(N_contrat, N_conpteur_B, N_conpteur_P, Nom, Mnt_due, Date_Adhesion, Adresse):
-            cursor.execute('''
-                INSERT INTO info_personne (N_contrat, N_conpteur_B, N_conpteur_P, Nom, Mnt_due, Date_Adhesion, Adresse)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (N_contrat, N_conpteur_B, N_conpteur_P, Nom, Mnt_due, Date_Adhesion, Adresse))
-            conn.commit()
-            st.success("Nouveau abonné ajouté avec succès !")
+        if champs_remplis(N_contrat, CIN, N_conpteur_B, Nom, Mnt_due, Date_Adhesion, Adresse):
+            # Vérification si le numéro de contrat existe déjà
+            cursor.execute("SELECT COUNT(*) FROM info_personne WHERE N_contrat = ?", (N_contrat,))
+            existe = cursor.fetchone()[0]
+            
+            if existe > 0:
+                st.error("Le numéro de contrat existe déjà.")
+            else:
+                # Insérer un nouvel abonné si le numéro de contrat est unique
+                cursor.execute('''
+                    INSERT INTO info_personne (N_contrat, Cin, N_conpteur_B, N_conpteur_P, Nom, Mnt_due, Date_Adhesion, Adresse)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (N_contrat, CIN, N_conpteur_B, N_conpteur_P, Nom, Mnt_due, Date_Adhesion, Adresse))
+                conn.commit()
+                st.success("Nouveau abonné ajouté avec succès !")
         else:
             st.warning("Il y a des informations manquantes. Veuillez remplir tous les champs.")
 
