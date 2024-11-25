@@ -329,16 +329,20 @@ if option == "Paiement d'abonnement":
     N_recue = st.selectbox("Nº de reçu : ", list(range(1, 2001)))
     Mnt_paye = st.number_input("Montant payé :", min_value=0.0)
     if Mnt_paye > Credit:
-        st.error(f"Montant payé dépasse crédit {Credit:.2f} dh. Veuillez corriger.")
+        st.warning(f"Montant dépasse crédit {Credit:.2f} dh. Veuillez corriger.")
     Date_payement = st.date_input("Date de régelement :")
     if st.button("Enregistrer paiement"):
         if champs_remplis(N_contrat, N_recue, Mnt_paye, Date_payement):
-            cursor.execute('''
-                INSERT INTO Abonnement (N_contrat, N_recue, Mnt_paye, Date_payement)
-                VALUES (?, ?, ?, ?)
-            ''', (N_contrat, N_recue, Mnt_paye, Date_payement))
-            conn.commit()
-            st.success("Paiement d'abonnement enregistré avec succès !")
+            if Mnt_paye <= Credit:
+                # Insérer le paiement dans la base de données
+                cursor.execute('''
+                    INSERT INTO Abonnement (N_contrat, N_recue, Mnt_paye, Date_payement)
+                    VALUES (?, ?, ?, ?)
+                ''', (N_contrat, N_recue, Mnt_paye, Date_payement))
+                conn.commit()
+                st.success("Paiement d'abonnement enregistré avec succès !")
+            else:
+                st.error(f"Montant {Mnt_paye:.2f} dh dépasse crédit {Credit:.2f} dh.")
         else:
             st.warning("Il y a des informations manquantes. Veuillez remplir tous les champs.")
 
@@ -525,7 +529,7 @@ if option == "Stock":
         # Récupération des achats dans la base de données
         achats = cursor.execute('''
                 SELECT Nom_Produit, Date_Achat, Quantite_achetee, Prix_unitaire, Montant_total, N_recu, Fournisseur
-                FROM Achat
+                FROM Produit_Acheter
                 ORDER BY Date_Achat DESC
             ''').fetchall()
 
