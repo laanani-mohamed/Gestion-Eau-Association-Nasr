@@ -544,15 +544,33 @@ if option == "Stock":
 
     elif option == "Produit Utiliser":
         st.subheader("Retirer des Produits du stock")
-
         # Création des champs du formulaire pour produit utiliser
         Nom_produit = st.selectbox("Nom du Produit", options=[row[0] for row in cursor.execute("SELECT Nom_Produit FROM Produit").fetchall()])
+        stock_query = """
+            SELECT 
+                p.Nom_Produit, 
+                COALESCE(SUM(pa.Quantite_achetee), 0) - COALESCE(SUM(pu.Quantite_utuli), 0) AS Stock_Restant
+            FROM 
+                Produit p
+            LEFT JOIN 
+                Produit_Acheter pa ON p.Nom_Produit = pa.Nom_Produit
+            LEFT JOIN 
+                Produit_Utiliser pu ON p.Nom_Produit = pu.Nom_Produit
+            WHERE 
+                p.Nom_Produit = ?
+            GROUP BY 
+                p.Nom_Produit;
+            """
+        stock_result = cursor.execute(stock_query, (Nom_produit,)).fetchone()
+        stock_rest = stock_result[1]
+        st.info(f"Quantité disponible pour {Nom_produit} : {int(stock_rest)}")
+        
         date_utilise = st.date_input("Date d'utilisation", value=datetime.today())
         quantite_utilise = st.number_input("Quantité Utilisée", min_value=0.0, format="%.2f")
         Description = st.text_input("Déscription")
 
         # Bouton de soumission
-        submit = st.button("Enregistrer l'achat")
+        submit = st.button("Enregistrer l'utilisation")
 
         # Traitement de l'insertion dans la base de données
         if submit:
