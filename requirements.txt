@@ -1,0 +1,5 @@
+streamlit
+pandas
+fpdf
+
+pip install -r requirements.txt
