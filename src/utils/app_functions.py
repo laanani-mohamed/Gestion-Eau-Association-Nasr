@@ -11,8 +11,13 @@ def get_to_app():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-        # Utilisation de la barre latérale pour le menu de sélection
-    st.sidebar.title("Association Gestion d'eau")
+    # Utilisation de la barre latérale pour le menu de sélection
+    col1, col2 = st.columns([1, 10])
+    with col1:
+        st.sidebar.image("src/assets/logo/logo_sidebar.png", width=100)
+    with col2:
+        st.sidebar.title("Association Gestion d'eau")
+    
     option = st.sidebar.radio("Choisissez une option :", [
             "Ajouter un nouveau abonné",
             "Liste des abonnés",
@@ -40,7 +45,7 @@ def get_to_app():
                 q.Date_consome,
                 q.Quantite AS Index_m3,
                 COALESCE(q.Quantite - LAG(q.Quantite) OVER (PARTITION BY q.N_contrat ORDER BY q.Date_consome), q.Quantite) AS Qte_Consomme_m3,
-                (COALESCE(q.Quantite - LAG(q.Quantite) OVER (PARTITION BY q.N_contrat ORDER BY q.Date_consome), q.Quantite) * 7) AS Montant_dh
+                (COALESCE(q.Quantite - LAG(q.Quantite) OVER (PARTITION BY q.N_contrat ORDER BY q.Date_consome), q.Quantite) * 7+15) AS Montant_dh
             FROM 
                 Qte_Consommation q;
             '''
@@ -77,7 +82,7 @@ def get_to_app():
     if option == "Ajouter un nouveau abonné":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/id-card.png", width=100)
+                st.image("src/assets/logo/id-card.png", width=100)
             with col2:
                 st.title("Ajouter un nouveau abonné")
             col1, col2 = st.columns(2)
@@ -115,7 +120,7 @@ def get_to_app():
     if option == "Liste des abonnés":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/liste.png", width=100)
+                st.image("src/assets/logo/liste.png", width=100)
             with col2:
                 st.title("Liste des abonnés ")
             
@@ -180,7 +185,7 @@ def get_to_app():
     if option == "Saisir une consommation":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/saisie.png", width=100)
+                st.image("src/assets/logo/saisie.png", width=100)
             with col2:
                 st.title("Saisir une consommation")
             col1,col2 = st.columns(2)
@@ -305,7 +310,7 @@ def get_to_app():
     if option == "Paiement d'abonnement":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/pay.png", width=100)
+                st.image("src/assets/logo/pay.png", width=100)
             with col2:
                 st.title("Paiement d'abonnement")
             
@@ -380,7 +385,7 @@ def get_to_app():
     if option == "Paiement de consommation":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/pay2.png", width=100)
+                st.image("src/assets/logo/pay2.png", width=100)
             with col2:
                 st.title("Paiement de consommation")
             
@@ -453,7 +458,7 @@ def get_to_app():
     if option == "Historique consommation & Paiment":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/historique.png", width=100)
+                st.image("src/assets/logo/historique.png", width=100)
             with col2:
                 st.title("Historique: consommation & Paiment")
 
@@ -504,7 +509,7 @@ def get_to_app():
     if option == "Stock":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/warehouse.png", width=100)
+                st.image("src/assets/logo/warehouse.png", width=100)
             with col2:
                 st.title("Gestion du Stock")
             # Options de gestion du stock
@@ -641,7 +646,7 @@ def get_to_app():
             elif option == "Vue sur le stock":
                 col1, col2 = st.columns([1, 10])
                 with col1:
-                    st.image("assets/logo/vue_stock.png", width=100)
+                    st.image("src/assets/logo/vue_stock.png", width=100)
                 with col2:
                     st.subheader("Vue sur le stock actuel")
                 
@@ -670,7 +675,7 @@ def get_to_app():
     if option == "ONEP":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/budget.png", width=100)
+                st.image("src/assets/logo/budget.png", width=100)
             with col2:
                 st.title("Situation Avec ONEP")
             query = '''
@@ -712,7 +717,7 @@ def get_to_app():
             if option == "Payer ONEP":
                 col1, col2 = st.columns([1, 10])
                 with col1:
-                    st.image("assets/logo/pay3.png", width=100)
+                    st.image("src/assets/logo/pay3.png", width=100)
                 with col2:
                     st.subheader("Payer ONEP")
                 Mois_consome = st.date_input("Mois consommé :", value=datetime.today())
@@ -744,7 +749,7 @@ def get_to_app():
                 # Pour la gestion du crédit ONEP
                 col1, col2 = st.columns([1, 10])
                 with col1:
-                    st.image("assets/logo/debt.png", width=100)
+                    st.image("src/assets/logo/debt.png", width=100)
                 with col2:
                     st.subheader("Crédit ONEP")
                 
@@ -778,7 +783,7 @@ def get_to_app():
     if option == "Charge Maintenance":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/mechanic.png", width=100)
+                st.image("src/assets/logo/mechanic.png", width=100)
             with col2:
                 st.title("Gestion de la Maintenance")
 
@@ -788,26 +793,26 @@ def get_to_app():
             # Saisie des informations principales pour l'opération de maintenance
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("assets/logo/calendar.png", width=100)
+                st.image("src/assets/logo/calendar.png", width=100)
             with col2:
                 date_operation = st.date_input("Date de l'opération", value=datetime.today())
             
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("assets/logo/describe.png", width=100)
+                st.image("src/assets/logo/describe.png", width=100)
             with col2:
                 description = st.text_area("Description de l'opération")
             
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("assets/logo/worker.png", width=100)
+                st.image("src/assets/logo/worker.png", width=100)
             with col2:
                 nom_ouvrier = st.text_input("Nom de l'ouvrier")
                 
                 
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("assets/logo/money.png", width=100)
+                st.image("src/assets/logo/money.png", width=100)
             with col2:
                 mnt_ouvrier = st.number_input("Montant payé à l'ouvrier (DH)", min_value=0.0, format="%.2f")
 
@@ -823,7 +828,7 @@ def get_to_app():
             # Interface pour ajouter des produits et quantités à l'opération
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("assets/logo/materiel.png", width=100)
+                st.image("src/assets/logo/materiel.png", width=100)
             with col2:    
                 nom_produit = st.selectbox("Nom du matériels", options=produits)
                 quantite_produit = st.number_input("Quantité utilisée", min_value=0.0, format="%.2f")
@@ -906,7 +911,7 @@ def get_to_app():
     if option == "Générer une facture de paiement":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/facture.png", width=100)
+                st.image("src/assets/logo/facture.png", width=100)
             with col2:
                 st.title("Générer une facture de paiement")
             def generer_facture_pdf(n_contrat):
@@ -1076,7 +1081,7 @@ def get_to_app():
     if option == "Mouvement de la caisse":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/caisse.png", width=100)
+                st.image("src/assets/logo/caisse.png", width=100)
             with col2:
                 st.header("Mouvements de la Caisse")
 
@@ -1095,7 +1100,7 @@ def get_to_app():
             SELECT ID_Maintenance AS ID, Date_operation AS Date_Mouvement, 'Maintenance' AS Motif, Mnt_ouvrier AS Montant 
             FROM Maintenance
             UNION ALL
-            SELECT ID_Achat AS ID, Date_Achat AS Date_Mouvement, 'Charge Materiel' AS Motif, -Montant_total AS Montant
+            SELECT ID_Achat AS ID, Date_Achat AS Date_Mouvement, 'Charge Materiel' AS Motif, abs(Montant_total) AS Montant
             FROM Produit_Acheter
             ''')
 
@@ -1106,21 +1111,55 @@ def get_to_app():
             # Convertir la colonne de date en format datetime et enlever l'heure
             mouvements['Date_Mouvement'] = pd.to_datetime(mouvements['Date_Mouvement']).dt.date
 
-            # Affichage initial des mouvements
+            # Ajouter les colonnes 'Débit' et 'Crédit' au DataFrame
+            mouvements['Débit'] = mouvements.apply(
+                lambda row: row['Montant'] if row['Motif'] in ['Adhision', 'Consommation'] else None,
+                axis=1
+            )
+
+            mouvements['Crédit'] = mouvements.apply(
+                lambda row: abs(row['Montant']) if row['Motif'] not in ['Adhision', 'Consommation'] else None,
+                axis=1
+            )
+
+            # Ajouter la colonne 'Redevance' et 'Perte' pour la consommation
+            mouvements['Redevance'] = mouvements.apply(
+                lambda row: 10 if row['Motif'] == 'Consommation' else None,
+                axis=1
+            )
+
+            mouvements['Perte'] = mouvements.apply(
+                lambda row: 5 if row['Motif'] == 'Consommation' else None,
+                axis=1
+            )
+
+            # Remplacer les valeurs None par des zéros pour une meilleure lisibilité
+            #mouvements['Débit'] = mouvements['Débit'].fillna(0)
+            #mouvements['Crédit'] = mouvements['Crédit'].fillna(0)
+
+            # Supprimer la colonne Montant, car elle n'est plus nécessaire
+            mouvements = mouvements.drop(columns=['Montant'])
+
+            # Afficher le tableau modifié avec Streamlit
             st.dataframe(mouvements, height=400)
 
             # Calcule de entre et sortie et difference
             col1,col2,col3 = st.columns(3)
             # Calcul de l'Entrée (montants positifs), Sortie (montants négatifs), et Différence
-            entre_1 = mouvements[mouvements['Montant'] >= 0]['Montant'].sum()
-            sortie_1 = abs(mouvements[mouvements['Montant'] < 0]['Montant'].sum())
-            difference_1 = entre_1 - sortie_1
+            Débit = mouvements['Débit'].sum()
+            Crédit = mouvements['Crédit'].sum()
+            Solde = Débit - Crédit
+
+            col4,col5,col6 = st.columns(3)
+            Redevance_total = mouvements['Redevance'].sum()
+            Perte_total = mouvements['Perte'].sum()
 
             # Affichage des résultats dans les colonnes
-            col1.info(f"Entrée : {entre_1:.2f}")
-            col2.info(f"Sortie : {sortie_1:.2f}")
-            col3.warning(f"Différence : {difference_1:.2f}")
-
+            col1.success(f"💰 Débit : {Débit:,.2f} MAD")
+            col2.error(f"📤 Crédit : {Crédit:,.2f} MAD")
+            col3.warning(f"⚖️ Solde : {Solde:,.2f} MAD")
+            col4.info(f"🔄 Redevance : {Redevance_total:,.2f} MAD")
+            col5.info(f"❌ Perte : {Perte_total:,.2f} MAD")
 
             st.subheader("Filtrages")
             col1,col2,col3 = st.columns(3)
@@ -1151,20 +1190,26 @@ def get_to_app():
 
             col1,col2,col3 = st.columns(3)
             # Calcul de l'Entrée (montants positifs), Sortie (montants négatifs), et Différence
-            entre = mouvements_filtrees[mouvements_filtrees['Montant'] >= 0]['Montant'].sum()
-            sortie = abs(mouvements_filtrees[mouvements_filtrees['Montant'] < 0]['Montant'].sum())
-            difference = entre - sortie
+            Débit_f = mouvements_filtrees['Débit'].sum()
+            Crédit_f = mouvements_filtrees['Crédit'].sum()
+            Solde_f = Débit_f - Crédit_f
+
+            col4,col5,col6 = st.columns(3)
+            Redevance_total_f = mouvements_filtrees['Redevance'].sum()
+            Perte_total_f = mouvements_filtrees['Perte'].sum()
 
             # Affichage des résultats dans les colonnes
-            col1.info(f"Entrée : {entre:.2f}")
-            col2.info(f"Sortie : {sortie:.2f}")
-            col3.warning(f"Différence : {difference:.2f}")
+            col1.success(f"💰 Débit : {Débit_f:,.2f} MAD")
+            col2.error(f"📤 Crédit : {Crédit_f:,.2f} MAD")
+            col3.info(f"⚖️ Différence : {Solde_f:,.2f} MAD")
+            col4.info(f"🔄 Redevance : {Redevance_total_f:,.2f} MAD")
+            col5.info(f"❌ Perte : {Perte_total_f:,.2f} MAD")
 
     # Comparer comsomation du nlock avec les abonnes
     if option == "Vérification Consommation":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("assets/logo/verification.png", width=100)
+                st.image("src/assets/logo/verification.png", width=100)
             with col2:
                 st.title("Consommation Par Block")
             

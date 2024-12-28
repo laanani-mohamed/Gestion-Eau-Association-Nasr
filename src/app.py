@@ -13,7 +13,7 @@ def main():
     if not st.session_state.logged_in:
         col1, col2, col3 = st.columns([2, 2, 1])
         with col2:
-            st.image("assets/logo/user.png", width=250)
+            st.image("src/assets/logo/user.png", width=250)
 
         col4, col5, col6 = st.columns([2, 2, 2])
         with col5:
