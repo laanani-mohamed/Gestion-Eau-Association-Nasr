@@ -5,6 +5,35 @@ from fpdf import FPDF
 from datetime import datetime
 import os
 
+# Obtenez le répertoire du script actuel
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Construisez le chemin relatif vers les images
+logo_sidebar_path = os.path.join(script_dir, "assets", "logo", "logo_sidebar.png")
+id_card_logo_path = os.path.join(script_dir, "assets", "logo", "id-card.png")
+liste_logo_path = os.path.join(script_dir, "assets", "logo", "liste.png")
+saisie_logo_path = os.path.join(script_dir, "assets", "logo", "saisie.png")
+pay_logo_path = os.path.join(script_dir, "assets", "logo", "pay.png")
+pay2_logo_path = os.path.join(script_dir, "assets", "logo", "pay2.png")
+historique_logo_path = os.path.join(script_dir, "assets", "logo", "historique.png")
+warehouse_logo_path = os.path.join(script_dir, "assets", "logo", "warehouse.png")
+budget_logo_path = os.path.join(script_dir, "assets", "logo", "budget.png")
+mechanic_logo_path = os.path.join(script_dir, "assets", "logo", "mechanic.png")
+facture_logo_path = os.path.join(script_dir, "assets", "logo", "facture.png")
+caisse_logo_path = os.path.join(script_dir, "assets", "logo", "caisse.png")
+verification_logo_path = os.path.join(script_dir, "assets", "logo", "verification.png")
+vue_stock_logo_path = os.path.join(script_dir, "assets", "logo", "vue_stock.png")
+calendar_logo_path = os.path.join(script_dir, "assets", "logo", "calendar.png")
+describe_logo_path = os.path.join(script_dir, "assets", "logo", "describe.png")
+worker_logo_path = os.path.join(script_dir, "assets", "logo", "worker.png")
+money_logo_path = os.path.join(script_dir, "assets", "logo", "money.png")
+materiel_logo_path = os.path.join(script_dir, "assets", "logo", "materiel.png")
+debt_logo_path = os.path.join(script_dir, "assets", "logo", "debt.png")
+pay3_logo_path = os.path.join(script_dir, "assets", "logo", "pay3.png")
+facture_logo_path = os.path.join(script_dir, "assets", "logo", "facture.png")
+
+
+
 def get_to_app():
     # Connexion à la base de données
     db_path = os.path.join(os.path.dirname(__file__), 'Gestion_eau.db')
@@ -14,7 +43,7 @@ def get_to_app():
     # Utilisation de la barre latérale pour le menu de sélection
     col1, col2 = st.columns([1, 10])
     with col1:
-        st.sidebar.image("src/assets/logo/logo_sidebar.png", width=100)
+        st.sidebar.image(logo_sidebar_path, width=100)
     with col2:
         st.sidebar.title("Association Gestion d'eau")
     
@@ -82,7 +111,7 @@ def get_to_app():
     if option == "Ajouter un nouveau abonné":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/id-card.png", width=100)
+                st.image(id_card_logo_path, width=100)
             with col2:
                 st.title("Ajouter un nouveau abonné")
             col1, col2 = st.columns(2)
@@ -120,7 +149,7 @@ def get_to_app():
     if option == "Liste des abonnés":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/liste.png", width=100)
+                st.image(liste_logo_path, width=100)
             with col2:
                 st.title("Liste des abonnés ")
             
@@ -185,7 +214,7 @@ def get_to_app():
     if option == "Saisir une consommation":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/saisie.png", width=100)
+                st.image(saisie_logo_path, width=100)
             with col2:
                 st.title("Saisir une consommation")
             col1,col2 = st.columns(2)
@@ -310,7 +339,7 @@ def get_to_app():
     if option == "Paiement d'abonnement":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/pay.png", width=100)
+                st.image(pay_logo_path, width=100)
             with col2:
                 st.title("Paiement d'abonnement")
             
@@ -385,7 +414,7 @@ def get_to_app():
     if option == "Paiement de consommation":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/pay2.png", width=100)
+                st.image(pay2_logo_path, width=100)
             with col2:
                 st.title("Paiement de consommation")
             
@@ -458,7 +487,7 @@ def get_to_app():
     if option == "Historique consommation & Paiment":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/historique.png", width=100)
+                st.image(historique_logo_path, width=100)
             with col2:
                 st.title("Historique: consommation & Paiment")
 
@@ -509,7 +538,7 @@ def get_to_app():
     if option == "Stock":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/warehouse.png", width=100)
+                st.image(warehouse_logo_path, width=100)
             with col2:
                 st.title("Gestion du Stock")
             # Options de gestion du stock
@@ -646,7 +675,7 @@ def get_to_app():
             elif option == "Vue sur le stock":
                 col1, col2 = st.columns([1, 10])
                 with col1:
-                    st.image("src/assets/logo/vue_stock.png", width=100)
+                    st.image(vue_stock_logo_path, width=100)
                 with col2:
                     st.subheader("Vue sur le stock actuel")
                 
@@ -675,7 +704,7 @@ def get_to_app():
     if option == "ONEP":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/budget.png", width=100)
+                st.image(budget_logo_path, width=100)
             with col2:
                 st.title("Situation Avec ONEP")
             query = '''
@@ -717,7 +746,7 @@ def get_to_app():
             if option == "Payer ONEP":
                 col1, col2 = st.columns([1, 10])
                 with col1:
-                    st.image("src/assets/logo/pay3.png", width=100)
+                    st.image(pay3_logo_path, width=100)
                 with col2:
                     st.subheader("Payer ONEP")
                 Mois_consome = st.date_input("Mois consommé :", value=datetime.today())
@@ -749,7 +778,7 @@ def get_to_app():
                 # Pour la gestion du crédit ONEP
                 col1, col2 = st.columns([1, 10])
                 with col1:
-                    st.image("src/assets/logo/debt.png", width=100)
+                    st.image(debt_logo_path, width=100)
                 with col2:
                     st.subheader("Crédit ONEP")
                 
@@ -783,7 +812,7 @@ def get_to_app():
     if option == "Charge Maintenance":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/mechanic.png", width=100)
+                st.image(mechanic_logo_path, width=100)
             with col2:
                 st.title("Gestion de la Maintenance")
 
@@ -793,26 +822,26 @@ def get_to_app():
             # Saisie des informations principales pour l'opération de maintenance
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("src/assets/logo/calendar.png", width=100)
+                st.image(calendar_logo_path, width=100)
             with col2:
                 date_operation = st.date_input("Date de l'opération", value=datetime.today())
             
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("src/assets/logo/describe.png", width=100)
+                st.image(describe_logo_path, width=100)
             with col2:
                 description = st.text_area("Description de l'opération")
             
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("src/assets/logo/worker.png", width=100)
+                st.image(worker_logo_path, width=100)
             with col2:
                 nom_ouvrier = st.text_input("Nom de l'ouvrier")
                 
                 
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("src/assets/logo/money.png", width=100)
+                st.image(money_logo_path, width=100)
             with col2:
                 mnt_ouvrier = st.number_input("Montant payé à l'ouvrier (DH)", min_value=0.0, format="%.2f")
 
@@ -828,7 +857,7 @@ def get_to_app():
             # Interface pour ajouter des produits et quantités à l'opération
             col1, col2 = st.columns([1, 15])
             with col1:
-                st.image("src/assets/logo/materiel.png", width=100)
+                st.image(materiel_logo_path, width=100)
             with col2:    
                 nom_produit = st.selectbox("Nom du matériels", options=produits)
                 quantite_produit = st.number_input("Quantité utilisée", min_value=0.0, format="%.2f")
@@ -913,7 +942,7 @@ def get_to_app():
     if option == "Générer une facture de paiement":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/facture.png", width=100)
+                st.image(facture_logo_path, width=100)
             with col2:
                 st.title("Générer une facture de paiement")
 #            def generer_facture_pdf(n_contrat):
@@ -1186,7 +1215,7 @@ def get_to_app():
     if option == "Mouvement de la caisse":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/caisse.png", width=100)
+                st.image(caisse_logo_path, width=100)
             with col2:
                 st.header("Mouvements de la Caisse")
 
@@ -1314,7 +1343,7 @@ def get_to_app():
     if option == "Vérification Consommation":
             col1, col2 = st.columns([1, 10])
             with col1:
-                st.image("src/assets/logo/verification.png", width=100)
+                st.image(verification_logo_path, width=100)
             with col2:
                 st.title("Consommation Par Block")
             
