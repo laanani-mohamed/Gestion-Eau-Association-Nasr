@@ -936,8 +936,6 @@ def get_to_app():
             else:
                 st.info("Aucune opération de maintenance trouvée pour ce mois.")
 
-
-
     # Generer les facture
     if option == "Générer une facture de paiement":
             col1, col2 = st.columns([1, 10])
@@ -1028,7 +1026,7 @@ def get_to_app():
                 pdf.multi_cell(0, 5, "Remarque : Merci de régler cette facture dans les 30 jours. Tout retard entraînera des frais supplémentaires.")
 
                 # Enregistrement du PDF
-                pdf_file_name = f"facture_{n_contrat}.pdf"
+                pdf_file_name = f"facture_{n_contrat}_{mois_consommation}.pdf"
                 pdf.output(pdf_file_name)
                 return pdf_file_name
 
@@ -1101,14 +1099,29 @@ def get_to_app():
             date_facture = datetime.now().strftime("%Y-%m-%d")
             mois_consommation = st.selectbox("Mois à payer (consommation) :", df_final['Mois_Consome'].unique())
             quantite_consommee = df_final[df_final['Mois_Consome'] == mois_consommation]['Qte_Consomme_m3'].sum()
-            
+
             if st.button("Générer la facture"):
+                # Générer le fichier PDF
                 pdf_file_name = generer_facture_pdf(n_contrat, selected_name, date_facture, mois_consommation, Credit_abnmt, Sum_credit, credit_adhision_a_paye, credit_consommation_a_paye, quantite_consommee)
 
+                # Chemin du dossier Factures
+                factures_dir = "Factures/2025"
+                
+                # Vérifier si le dossier existe, sinon le créer
+                if not os.path.exists(factures_dir):
+                    os.makedirs(factures_dir)
+                
+                # Chemin complet du fichier PDF à enregistrer
+                pdf_file_path = os.path.join(factures_dir, pdf_file_name)
+                
                 # Lire le fichier PDF généré
                 with open(pdf_file_name, "rb") as file:
                     pdf_bytes = file.read()
-
+                
+                # Enregistrer le fichier PDF dans le dossier Factures
+                with open(pdf_file_path, "wb") as file:
+                    file.write(pdf_bytes)
+                
                 # Bouton de téléchargement
                 st.download_button(
                     label="Télécharger la facture en PDF",
@@ -1121,12 +1134,12 @@ def get_to_app():
                 st.title("Facture")
 
                 # Onglet Crédit
-                st.subheader("Onglet 1 : Crédit")
+                st.subheader("Info sur Crédit")
                 credit_data = {
                     "Description": ["Crédit Abonnement Total :", "Crédit Consommation Total :", "Total :"],
-                    "Montant (dh)": [round(Credit_abnmt,2), round(Sum_credit,2), round(Credit_abnmt + Sum_credit,2)],
-                    "Montant à Payer (dh)": [round(credit_adhision_a_paye,2), round(credit_consommation_a_paye,2), round(credit_adhision_a_paye + credit_consommation_a_paye, 2)]
-                                }
+                    "Montant (dh)": [round(Credit_abnmt, 2), round(Sum_credit, 2), round(Credit_abnmt + Sum_credit, 2)],
+                    "Montant à Payer (dh)": [round(credit_adhision_a_paye, 2), round(credit_consommation_a_paye, 2), round(credit_adhision_a_paye + credit_consommation_a_paye, 2)]
+                }
                 credit_df = pd.DataFrame(credit_data)
                 st.table(credit_df)
 
@@ -1134,7 +1147,7 @@ def get_to_app():
                 st.write("\n")
 
                 # Onglet Consommation
-                st.subheader("Onglet 2 : Consommation")
+                st.subheader("Info sur Consommation")
                 consommation_data = {
                     "Détails": [
                         "Quantité Consommée (m³)",
@@ -1142,12 +1155,14 @@ def get_to_app():
                         "Perte :",
                         "Total à Payer :"
                     ],
-                    "Valeur": [quantite_consommee, 10, 5, round(quantite_consommee*7 +15,2)]
+                    "Valeur": [quantite_consommee, 10, 5, round(quantite_consommee * 7 + 15, 2)]
                 }
                 consommation_df = pd.DataFrame(consommation_data)
                 st.table(consommation_df)
 
-
+                # Message de confirmation
+                st.success(f"La facture a été enregistrée dans le dossier '{factures_dir}' sous le nom '{pdf_file_name}'.")
+    
     # Mouvement de caise
     if option == "Mouvement de la caisse":
             col1, col2 = st.columns([1, 10])
@@ -1352,7 +1367,6 @@ def get_to_app():
             sum_index_abonne = df2['Qte_consome'].sum() if not df2.empty else 0
             col1.info(f"Qte Compteur Block = {index_block} m3")
             col2.info(f"Consommation Totale = {sum_index_abonne} m3")
-
 
     # Fermer la connexion à la base de données
     conn.close()
