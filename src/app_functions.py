@@ -968,6 +968,7 @@ def get_to_app():
                 pdf.cell(0, 5, f"N° de contrat : {n_contrat}", ln=True)
                 pdf.cell(0, 5, f"Nom : {selected_name}", ln=True)
                 pdf.cell(0, 5, f"Mois de consommation : {mois_consommation}", ln=True)
+                pdf.cell(0, 5, f"Nº Recue : ", ln=True)
                 pdf.ln(3)  # Espacement réduit
 
                 # Onglet Crédit
