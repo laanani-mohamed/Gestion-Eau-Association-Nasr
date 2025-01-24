@@ -950,79 +950,82 @@ def get_to_app():
                 pdf = FPDF()
                 pdf.add_page()
 
+                # Réduire les marges pour gagner de l'espace
+                pdf.set_auto_page_break(auto=True, margin=5)  # Marge de 5 mm en bas
+                pdf.set_margins(left=5, top=5, right=5)  # Marges gauche, droite et haut à 5 mm
+
                 # En-tête
-                pdf.set_font("Arial", 'B', 16)
-                pdf.cell(200, 10, "Association Gestion d'Eau", ln=True, align='C')
-                pdf.set_font("Arial", '', 12)
-                pdf.cell(200, 10, "123 Rue de l'Eau, Ville, Code Postal", ln=True, align='C')
-                pdf.ln(10)
+                pdf.set_font("Arial", 'B', 12)  # Taille de police réduite
+                pdf.cell(0, 6, "Association Gestion d'Eau", ln=True, align='C')
+                pdf.set_font("Arial", '', 8)  # Taille de police réduite
+                pdf.ln(3)  # Espacement réduit
 
                 # Informations de la facture
-                pdf.set_font("Arial", 'B', 14)
-                pdf.cell(200, 10, "Facture de Paiement", ln=True, align='C')
-                pdf.ln(10)
+                pdf.set_font("Arial", 'B', 10)  # Taille de police réduite
+                pdf.cell(0, 5, "Facture de Paiement", ln=True, align='C')
+                pdf.ln(3)  # Espacement réduit
 
-                pdf.set_font("Arial", '', 12)
-                pdf.cell(200, 10, f"Date de la facture : {date_facture}", ln=True)
-                pdf.cell(200, 10, f"N° de contrat : {n_contrat}", ln=True)
-                pdf.cell(200, 10, f"Nom : {selected_name}", ln=True)
-                pdf.cell(200, 10, f"Mois de consommation : {mois_consommation}", ln=True)
-                pdf.ln(10)
+                pdf.set_font("Arial", '', 8)  # Taille de police réduite
+                pdf.cell(0, 5, f"Date de la facture : {date_facture}", ln=True)
+                pdf.cell(0, 5, f"N° de contrat : {n_contrat}", ln=True)
+                pdf.cell(0, 5, f"Nom : {selected_name}", ln=True)
+                pdf.cell(0, 5, f"Mois de consommation : {mois_consommation}", ln=True)
+                pdf.ln(3)  # Espacement réduit
 
                 # Onglet Crédit
-                pdf.set_font("Arial", 'B', 14)
-                pdf.cell(200, 10, "Onglet 1 : Crédit", ln=True)
-                pdf.ln(5)
+                pdf.set_font("Arial", 'B', 10)  # Taille de police réduite
+                pdf.cell(0, 5, "Info sur Crédit", ln=True)
+                pdf.ln(2)  # Espacement réduit
 
-                pdf.set_font("Arial", 'B', 12)
-                pdf.cell(100, 10, "Description", border=1)
-                pdf.cell(45, 10, "Montant (dh)", border=1)
-                pdf.cell(45, 10, "Montant à Payer (dh)", border=1, ln=True)
+                pdf.set_font("Arial", 'B', 7)  # Taille de police réduite
+                pdf.cell(50, 5, "Description", border=1)
+                pdf.cell(20, 5, "Montant", border=1)
+                pdf.cell(20, 5, "Montant à Payer", border=1, ln=True)
 
-                pdf.set_font("Arial", '', 12)
-                pdf.cell(100, 10, "Crédit Abonnement Total :", border=1)
-                pdf.cell(45, 10, f"{round(Credit_abnmt, 2)}", border=1)
-                pdf.cell(45, 10, f"{round(credit_adhision_a_paye, 2)}", border=1, ln=True)
+                pdf.set_font("Arial", '', 8)  # Taille de police réduite
+                pdf.cell(50, 5, "Crédit Abonnement Total :", border=1)
+                pdf.cell(20, 5, f"{round(Credit_abnmt, 2)}", border=1)
+                pdf.cell(20, 5, f"{round(credit_adhision_a_paye, 2)}", border=1, ln=True)
 
-                pdf.cell(100, 10, "Crédit Consommation Total :", border=1)
-                pdf.cell(45, 10, f"{round(Sum_credit, 2)}", border=1)
-                pdf.cell(45, 10, f"{round(credit_consommation_a_paye, 2)}", border=1, ln=True)
+                pdf.cell(50, 5, "Crédit Consommation Total :", border=1)
+                pdf.cell(20, 5, f"{round(Sum_credit, 2)}", border=1)
+                pdf.cell(20, 5, f"{round(credit_consommation_a_paye, 2)}", border=1, ln=True)
 
-                pdf.set_font("Arial", 'B', 12)
-                pdf.cell(100, 10, "Total :", border=1)
-                pdf.cell(45, 10, f"{round(Credit_abnmt + Sum_credit, 2)}", border=1)
-                pdf.cell(45, 10, f"{round(credit_adhision_a_paye + credit_consommation_a_paye, 2)}", border=1, ln=True)
-                pdf.ln(10)
+                pdf.set_font("Arial", 'B', 8)  # Taille de police réduite
+                pdf.cell(50, 5, "Total :", border=1)
+                pdf.cell(20, 5, f"{round(Credit_abnmt + Sum_credit, 2)}", border=1)
+                pdf.cell(20, 5, f"{round(credit_adhision_a_paye + credit_consommation_a_paye, 2)}", border=1, ln=True)
+                pdf.ln(3)  # Espacement réduit
 
                 # Onglet Consommation
-                pdf.set_font("Arial", 'B', 14)
-                pdf.cell(200, 10, "Onglet 2 : Consommation", ln=True)
-                pdf.ln(5)
+                pdf.set_font("Arial", 'B', 10)  # Taille de police réduite
+                pdf.cell(0, 5, "Info sur Consommation", ln=True)
+                pdf.ln(2)  # Espacement réduit
 
-                pdf.set_font("Arial", 'B', 12)
-                pdf.cell(100, 10, "Détails", border=1)
-                pdf.cell(90, 10, "Valeur", border=1, ln=True)
+                pdf.set_font("Arial", 'B', 8)  # Taille de police réduite
+                pdf.cell(50, 5, "Détails", border=1)
+                pdf.cell(40, 5, "Valeur", border=1, ln=True)
 
-                pdf.set_font("Arial", '', 12)
-                pdf.cell(100, 10, "Quantité Consommée (m³)", border=1)
-                pdf.cell(90, 10, f"{quantite_consommee}", border=1, ln=True)
+                pdf.set_font("Arial", '', 8)  # Taille de police réduite
+                pdf.cell(50, 5, "Quantité Consommée (m³)", border=1)
+                pdf.cell(40, 5, f"{quantite_consommee}", border=1, ln=True)
 
-                pdf.cell(100, 10, "Redevance :", border=1)
-                pdf.cell(90, 10, "5.00", border=1, ln=True)
+                pdf.cell(50, 5, "Redevance :", border=1)
+                pdf.cell(40, 5, "10.00", border=1, ln=True)
 
-                pdf.cell(100, 10, "Perte :", border=1)
-                pdf.cell(90, 10, "10.00", border=1, ln=True)
+                pdf.cell(50, 5, "Perte :", border=1)
+                pdf.cell(40, 5, "5.00", border=1, ln=True)
 
-                pdf.set_font("Arial", 'B', 12)
-                pdf.cell(100, 10, "Total à Payer :", border=1)
-                pdf.cell(90, 10, f"{round(quantite_consommee * 7 + 15, 2)}", border=1, ln=True)
-                pdf.ln(10)
+                pdf.set_font("Arial", 'B', 8)  # Taille de police réduite
+                pdf.cell(50, 5, "Total à Payer :", border=1)
+                pdf.cell(40, 5, f"{round(quantite_consommee * 7 + 15, 2)}", border=1, ln=True)
+                pdf.ln(3)  # Espacement réduit
 
                 # Pied de page
-                pdf.set_font("Arial", '', 10)
-                pdf.cell(200, 10, "Téléphone : 01 23 45 67 89", ln=True)
-                pdf.ln(5)
-                pdf.multi_cell(200, 10, "Remarque : Merci de régler cette facture dans les 30 jours. Tout retard entraînera des frais supplémentaires.")
+                pdf.set_font("Arial", '', 7)  # Taille de police réduite
+                pdf.cell(0, 5, "Téléphone : 01 23 45 67 89", ln=True)
+                pdf.ln(2)  # Espacement réduit
+                pdf.multi_cell(0, 5, "Remarque : Merci de régler cette facture dans les 30 jours. Tout retard entraînera des frais supplémentaires.")
 
                 # Enregistrement du PDF
                 pdf_file_name = f"facture_{n_contrat}.pdf"
