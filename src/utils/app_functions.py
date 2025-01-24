@@ -907,6 +907,8 @@ def get_to_app():
             else:
                 st.info("Aucune opération de maintenance trouvée pour ce mois.")
 
+
+
     # Generer les facture
     if option == "Générer une facture de paiement":
             col1, col2 = st.columns([1, 10])
@@ -914,7 +916,7 @@ def get_to_app():
                 st.image("src/assets/logo/facture.png", width=100)
             with col2:
                 st.title("Générer une facture de paiement")
-            def generer_facture_pdf(n_contrat):
+#            def generer_facture_pdf(n_contrat):
                 # Requête pour obtenir les détails des consommations pour le contrat donné
                 query = f'''
                     SELECT N_contrat, Date_consome, Quantite
@@ -955,13 +957,13 @@ def get_to_app():
                     details = []
                     
                     # Traitement des données pour calculer les quantités consommées
-                    for i, (date_consomation, quantity) in enumerate(result):
-                        date_consomation = datetime.strptime(date_consomation, '%Y-%m-%d').strftime('%m/%Y')
+                    for i, (Date_consome, quantity) in enumerate(result):
+                        Date_consome = datetime.strptime(Date_consome, '%Y-%m-%d').strftime('%m/%Y')
                         
                         if previous_quantity is not None:
                             quantity_consumed = quantity - previous_quantity
                             total_quantity_consumed += quantity_consumed
-                            details.append((date_consomation, previous_quantity, quantity, quantity_consumed))
+                            details.append((Date_consome, previous_quantity, quantity, quantity_consumed))
                         
                         previous_quantity = quantity
 
@@ -983,7 +985,7 @@ def get_to_app():
                     pdf.ln(10)
                     pdf.cell(100, 10, f"N° Recu : {n_recu}")
                     pdf.ln(10)
-                    pdf.cell(100, 10, f"Mois de consommation : {date_consomation} ")
+                    pdf.cell(100, 10, f"Mois de consommation : {Date_consome} ")
                     pdf.ln(10)
                     pdf.cell(100, 10, f"Quantité Consommée : {total_quantity_consumed}")
                     pdf.ln(10)
@@ -1005,6 +1007,72 @@ def get_to_app():
 
                 else:
                     st.error("Aucune consommation trouvée pour ce numéro de contrat.")
+
+
+            def generer_facture_pdf(n_contrat, nom_abonne, adresse, date_adhesion, date_facture, n_recu, montant_consommation, credit_adhision, credit_consommation, quantite_consommee, mois_consommation):
+                pdf = FPDF()
+                pdf.add_page()
+
+                # En-tête
+                pdf.set_font("Arial", 'B', 16)
+                pdf.cell(200, 10, "Association Gestion d'Eau", ln=True, align='C')
+                pdf.set_font("Arial", '', 12)
+                pdf.cell(200, 10, "123 Rue de l'Eau, Ville, Code Postal", ln=True, align='C')
+                pdf.ln(10)
+
+                # Titre de la facture
+                pdf.set_font("Arial", 'B', 14)
+                pdf.cell(200, 10, "Facture de Paiement", ln=True, align='C')
+                pdf.ln(10)
+
+                # Informations de l'abonné
+                pdf.set_font("Arial", '', 12)
+                pdf.cell(200, 10, f"N° de contrat : {n_contrat}", ln=True)
+                pdf.cell(200, 10, f"Nom : {nom_abonne}", ln=True)
+                pdf.cell(200, 10, f"Adresse : {adresse}", ln=True)
+                pdf.cell(200, 10, f"Date d'adhésion : {date_adhesion}", ln=True)
+                pdf.ln(10)
+
+                # Détails de la facture
+                pdf.cell(200, 10, f"Date de la facture : {date_facture}", ln=True)
+                pdf.cell(200, 10, f"N° de reçu : {n_recu}", ln=True)
+                pdf.ln(10)
+
+                # Tableau des montants
+                pdf.set_font("Arial", 'B', 12)
+                pdf.cell(100, 10, "Description", border=1)
+                pdf.cell(50, 10, "Montant (dh)", border=1, ln=True)
+                pdf.set_font("Arial", '', 12)
+                pdf.cell(100, 10, "Consommation d'eau", border=1)
+                pdf.cell(50, 10, f"{montant_consommation:.2f}", border=1, ln=True)
+                pdf.cell(100, 10, "Crédit adhésion à payer", border=1)
+                pdf.cell(50, 10, f"{credit_adhision:.2f}", border=1, ln=True)
+                pdf.cell(100, 10, "Crédit consommation à payer", border=1)
+                pdf.cell(50, 10, f"{credit_consommation:.2f}", border=1, ln=True)
+                pdf.set_font("Arial", 'B', 12)
+                pdf.cell(100, 10, "Total à payer", border=1)
+                pdf.cell(50, 10, f"{montant_consommation + credit_adhision + credit_consommation:.2f}", border=1, ln=True)
+                pdf.ln(10)
+
+                # Détails de la consommation
+                pdf.cell(200, 10, f"Mois de consommation : {mois_consommation}", ln=True)
+                pdf.cell(200, 10, f"Quantité consommée : {quantite_consommee} m³", ln=True)
+                pdf.cell(200, 10, f"Montant de la consommation : {montant_consommation:.2f} dh", ln=True)
+                pdf.ln(10)
+
+                # Pied de page
+                pdf.set_font("Arial", '', 10)
+                pdf.cell(200, 10, "Téléphone : 01 23 45 67 89", ln=True)
+                pdf.cell(200, 10, "E-mail : contact@association-eau.fr", ln=True)
+                pdf.ln(5)
+                pdf.multi_cell(200, 10, "Remarque : Merci de régler cette facture dans les 30 jours. Tout retard entraînera des frais supplémentaires.")
+
+                # Enregistrement du PDF
+                pdf_file_name = f"facture_{n_contrat}.pdf"
+                pdf.output(pdf_file_name)
+                return pdf_file_name
+
+
 
             query_abnmt = '''
             SELECT 
@@ -1076,6 +1144,43 @@ def get_to_app():
 
             if st.button("Générer la facture"):
                 generer_facture_pdf(n_contrat)
+
+                # Titre de la page
+                st.title("Facture Mensuelle - Association d'Eau")
+
+                # Onglet Crédit
+                st.subheader("Onglet 1 : Crédit")
+                credit_data = {
+                    "Description": ["Crédit Abonnement Total :", "Crédit Consommation Total :", "Total Crédit :"],
+                    "Montant (€)": ["[Montant]", "[Montant]", "[Total Montant]"],
+                    "Montant à Payer (€)": ["[Montant à Payer]", "[Montant à Payer]", "[Total à Payer]"]
+                }
+                credit_df = pd.DataFrame(credit_data)
+                st.table(credit_df)
+
+                # Espacement
+                st.write("\n")
+
+                # Onglet Consommation
+                st.subheader("Onglet 2 : Consommation")
+                consommation_data = {
+                    "Détails": [
+                        "Index Précédent - Index Nouveau = Quantité Consommée (m³)",
+                        "Redevance :",
+                        "Perte :",
+                        "Total à Payer :"
+                    ],
+                    "Valeur": [
+                        "[Index Précédent] - [Index Nouveau] = [Quantité]",
+                        "[Montant]",
+                        "[Montant]",
+                        "[Montant Total à Payer]"
+                    ]
+                }
+                consommation_df = pd.DataFrame(consommation_data)
+                st.table(consommation_df)
+
+
 
     # Mouvement de caise
     if option == "Mouvement de la caisse":

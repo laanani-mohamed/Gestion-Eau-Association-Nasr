@@ -13,7 +13,7 @@ def main():
     if not st.session_state.logged_in:
         col1, col2, col3 = st.columns([2, 2, 1])
         with col2:
-            st.image("src/assets/logo/user.png", width=250)
+            st.image("/Users/mac/Desktop/Gestion-Eau-Association-Nasr/src/assets/logo/user.png", width=250)
 
         col4, col5, col6 = st.columns([2, 2, 2])
         with col5:
@@ -28,7 +28,7 @@ def main():
             if st.button("Se connecter"):
                 if authenticate_user(username, password):
                     st.session_state.logged_in = True
-                    st.rerun()() 
+                    st.rerun()
                 else:
                     st.error("incorrect")
     else:
