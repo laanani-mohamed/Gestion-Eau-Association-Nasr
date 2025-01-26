@@ -66,18 +66,22 @@ def get_to_app():
 ##################################################################################################################
     def champs_remplis(*args):
             return all(arg not in ("", None) for arg in args)
-        # Requête SQL pour obtenir les données nécessaires pour Consommation Historique & Payement
+    
+    # Requête SQL pour obtenir les données nécessaires pour Consommation Historique & Payement   
     query1 = '''
-            SELECT 
-                q.N_contrat,
-                strftime('%Y-%m', q.Date_consome) AS Mois_Consome,
-                q.Date_consome,
-                q.Quantite AS Index_m3,
-                COALESCE(q.Quantite - LAG(q.Quantite) OVER (PARTITION BY q.N_contrat ORDER BY q.Date_consome), q.Quantite) AS Qte_Consomme_m3,
-                (COALESCE(q.Quantite - LAG(q.Quantite) OVER (PARTITION BY q.N_contrat ORDER BY q.Date_consome), q.Quantite) * 7+15) AS Montant_dh
-            FROM 
-                Qte_Consommation q;
-            '''
+    SELECT 
+        q.N_contrat,
+        strftime('%Y-%m', q.Date_consome) AS Mois_Consome,
+        q.Date_consome,
+        q.Quantite AS Index_m3,
+        q.Quantite - q.Index_precedent AS Qte_Consomme_m3,
+        (q.Quantite - q.Index_precedent)*7 AS Montant_base_dh,
+        q.gestion AS Gestion_dh,
+        q.perte AS Perte_dh,
+        (q.Quantite - q.Index_precedent)*7 + q.gestion + q.perte AS Total
+    FROM 
+        Qte_Consommation q;
+'''
     df1 = pd.read_sql_query(query1, conn)
 
     query2 = '''
@@ -98,11 +102,11 @@ def get_to_app():
     df_merged = pd.merge(df1, df2, how='left', left_on=['N_contrat', 'Mois_Consome'], right_on=['N_contrat', 'Mois_Payement'])
 
         # Calculer la colonne Crédit
-    df_merged['Crédit'] = df_merged['Montant_dh'] - df_merged['Montant_paye'].where(df_merged['Montant_paye'].notna(), 0)
+    df_merged['Crédit'] = df_merged['Total'] - df_merged['Montant_paye'].where(df_merged['Montant_paye'].notna(), 0)
 
         # Affichage du DataFrame d'origine
-    data_f = df_merged[['N_contrat', 'Mois_Consome', 'Date_réglement', 'N_recue', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye','Crédit']]
-    data_ff = df_merged[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye','Crédit']]
+    data_f = df_merged[['N_contrat', 'Mois_Consome', 'Date_réglement', 'N_recue', 'Index_m3', 'Qte_Consomme_m3', 'Montant_base_dh', 'Gestion_dh', 'Perte_dh', 'Total', 'Montant_paye','Crédit']]
+    data_ff = df_merged[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Total', 'Montant_paye','Crédit']]
 ##################################################################################################################
 
 
@@ -177,11 +181,12 @@ def get_to_app():
             data = pd.read_sql_query(query, conn)
 
             # Afficher le DataFrame complet par défaut
+            data = data.sort_values(by='N_contrat')
             st.dataframe(data)
 
             # Ajout des filtres dynamiques en bas
             st.markdown("## Filtrer")
-            filtered_data = data.copy()  # Copie du DataFrame pour appliquer les filtres
+            filtered_data = data.sort_values(by='N_contrat').copy()  # Copie du DataFrame pour appliquer les filtres
             # Création de filtres alignés horizontalement
             with st.container():
                 col1, col2 = st.columns([1, 1])
@@ -265,12 +270,13 @@ def get_to_app():
                 if st.button("Enregistrer"):
                     # Code pour enregistrer la consommation dans la base de données
                     # Exemple d'insertion dans la table (à adapter selon votre schéma)
+                    
                     insert_query = '''
-                    INSERT INTO Qte_Consommation (N_contrat, Date_consome, Quantite)
-                    VALUES (?, ?, ?)
+                    INSERT INTO Qte_Consommation (N_contrat, Date_consome, Quantite, Index_precedent, gestion, perte)
+                    VALUES (?, ?, ?, ?, 10, 5)
                     '''
                     # Exécution de la requête avec les valeurs saisies
-                    conn.execute(insert_query, (N_contrat, Date_consome, Quantite))
+                    conn.execute(insert_query, (N_contrat, Date_consome, Quantite, last_index))
                     conn.commit()
                     st.success("Consommation enregistrée avec succès !")
 
@@ -448,8 +454,8 @@ def get_to_app():
                 try:
                     # Insertion dans la table Pay_Consommation
                     insert_query = '''
-                    INSERT INTO Pay_Consommation (N_contrat, Mnt_paye, N_recue, Date_paye, Date_payement)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO Pay_Consommation (N_contrat, Mnt_paye, N_recue, Date_paye, Date_payement, Gestion, Perte)
+                    VALUES (?, ?, ?, ?, ?, 10, 5)
                     '''
                     cursor.execute(insert_query, (N_contrat, Mnt_paye, N_recue, Date_paye, Date_payement))
                     conn.commit()
@@ -460,12 +466,12 @@ def get_to_app():
 
             # Filtrer pour N_contrat sélectionné et Crédit != 0
             df_filtered = data_ff[(df_merged['N_contrat'] == N_contrat) & (df_merged['Crédit'] != 0)]
-            df_grouped = df_filtered.groupby(['N_contrat', 'Mois_Consome', 'Montant_dh']).agg({
+            df_grouped = df_filtered.groupby(['N_contrat', 'Mois_Consome', 'Total']).agg({
             'Montant_paye': 'sum'
             }).reset_index()
 
             # Calculer le crédit restant par mois en fonction des paiements
-            df_grouped['Crédit_rest'] = df_grouped['Montant_dh'] - df_grouped['Montant_paye']
+            df_grouped['Crédit_rest'] = df_grouped['Total'] - df_grouped['Montant_paye']
             df_grouped = df_grouped[df_grouped['Crédit_rest'] != 0]  # Garde les factures non payées
 
             # Joindre pour obtenir le détail complet des colonnes originales
@@ -476,7 +482,7 @@ def get_to_app():
             col1,col2 = st.columns(2)
             if not df_final.empty:
                 st.write("### Les factures Non payées :")
-                st.dataframe(df_final[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye', 'Crédit_rest']])
+                st.dataframe(df_final[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Total', 'Montant_paye', 'Crédit_rest']])
                 Sum_credit = df_final['Crédit_rest'].sum()
                 col1.warning(f"Crédit Totale = {Sum_credit} dh")
                 col2.warning(f"Nº mois Non Payé : {N_mois}")
@@ -624,7 +630,7 @@ def get_to_app():
                     """
                 stock_result = cursor.execute(stock_query, (Nom_produit,)).fetchone()
                 stock_rest = stock_result[1]
-                st.info(f"Quantité disponible pour {Nom_produit} : {int(stock_rest)}")
+                st.warning(f"Quantité disponible : {int(stock_rest)}")
                 
                 date_utilise = st.date_input("Date d'utilisation", value=datetime.today())
                 quantite_utilise = st.number_input("Quantité Utilisée", min_value=0.0, format="%.2f")
@@ -858,9 +864,10 @@ def get_to_app():
             col1, col2 = st.columns([1, 15])
             with col1:
                 st.image(materiel_logo_path, width=100)
-            with col2:    
-                nom_produit = st.selectbox("Nom du matériels", options=produits)
-                quantite_produit = st.number_input("Quantité utilisée", min_value=0.0, format="%.2f")
+            with col2:
+                col6,col7= st.columns(2)    
+                nom_produit = col6.selectbox("Nom du matériels", options=produits)
+                quantite_produit = col7.number_input("Quantité utilisée", min_value=0.0, format="%.2f")
                 ajouter_produit = st.button("Ajouter le produit")
 
             # Ajouter le produit et afficher le message de succès
@@ -1172,29 +1179,59 @@ def get_to_app():
             with col2:
                 st.header("Mouvements de la Caisse")
 
-        # Création de la vue Mouvements_Caisse
+            # Création de la vue Mouvements_Caisse
             cursor.execute('''
             CREATE VIEW IF NOT EXISTS Mouvements_Caisse AS
-            SELECT N_contrat AS ID, Date_payement AS Date_Mouvement, 'Adhision' AS Motif, Mnt_paye AS Montant
+            SELECT 
+                N_contrat AS ID, 
+                Date_payement AS Date_Mouvement, 
+                'Adhision' AS Motif, 
+                Mnt_paye AS Montant,
+                NULL AS Gestion,  -- Ajout de la colonne Gestion avec NULL pour les autres tables
+                NULL AS Perte     -- Ajout de la colonne Perte avec NULL pour les autres tables
             FROM Abonnement
             UNION ALL
-            SELECT N_contrat AS ID, Date_payement AS Date_Mouvement, 'Consommation' AS Motif, Mnt_paye AS Montant
+            SELECT 
+                N_contrat AS ID, 
+                Date_payement AS Date_Mouvement, 
+                'Consommation' AS Motif, 
+                Mnt_paye AS Montant,
+                Gestion,  -- Colonne Gestion de Pay_Consommation
+                Perte     -- Colonne Perte de Pay_Consommation
             FROM Pay_Consommation
             UNION ALL
-            SELECT ID_Payment AS ID, Date_Reglement AS Date_Mouvement, 'ONEP' AS Motif, Mnt_paye AS Montant
+            SELECT 
+                ID_Payment AS ID, 
+                Date_Reglement AS Date_Mouvement, 
+                'ONEP' AS Motif, 
+                Mnt_paye AS Montant,
+                NULL AS Gestion,  -- Ajout de la colonne Gestion avec NULL pour les autres tables
+                NULL AS Perte     -- Ajout de la colonne Perte avec NULL pour les autres tables
             FROM ONEP_Payment
             UNION ALL
-            SELECT ID_Maintenance AS ID, Date_operation AS Date_Mouvement, 'Maintenance' AS Motif, Mnt_ouvrier AS Montant 
+            SELECT 
+                ID_Maintenance AS ID, 
+                Date_operation AS Date_Mouvement, 
+                'Maintenance' AS Motif, 
+                Mnt_ouvrier AS Montant,
+                NULL AS Gestion,  -- Ajout de la colonne Gestion avec NULL pour les autres tables
+                NULL AS Perte     -- Ajout de la colonne Perte avec NULL pour les autres tables
             FROM Maintenance
             UNION ALL
-            SELECT ID_Achat AS ID, Date_Achat AS Date_Mouvement, 'Charge Materiel' AS Motif, abs(Montant_total) AS Montant
+            SELECT 
+                ID_Achat AS ID, 
+                Date_Achat AS Date_Mouvement, 
+                'Charge Materiel' AS Motif, 
+                abs(Montant_total) AS Montant,
+                NULL AS Gestion,  -- Ajout de la colonne Gestion avec NULL pour les autres tables
+                NULL AS Perte     -- Ajout de la colonne Perte avec NULL pour les autres tables
             FROM Produit_Acheter
             ''')
 
             # Récupérer les données de la vue Mouvements_Caisse, classées par date
             query = "SELECT * FROM Mouvements_Caisse ORDER BY Date_Mouvement ASC"
             mouvements = pd.read_sql_query(query, conn)
-
+            
             # Convertir la colonne de date en format datetime et enlever l'heure
             mouvements['Date_Mouvement'] = pd.to_datetime(mouvements['Date_Mouvement']).dt.date
 
@@ -1209,17 +1246,6 @@ def get_to_app():
                 axis=1
             )
 
-            # Ajouter la colonne 'Redevance' et 'Perte' pour la consommation
-            mouvements['Redevance'] = mouvements.apply(
-                lambda row: 10 if row['Motif'] == 'Consommation' else None,
-                axis=1
-            )
-
-            mouvements['Perte'] = mouvements.apply(
-                lambda row: 5 if row['Motif'] == 'Consommation' else None,
-                axis=1
-            )
-
             # Remplacer les valeurs None par des zéros pour une meilleure lisibilité
             #mouvements['Débit'] = mouvements['Débit'].fillna(0)
             #mouvements['Crédit'] = mouvements['Crédit'].fillna(0)
@@ -1228,24 +1254,24 @@ def get_to_app():
             mouvements = mouvements.drop(columns=['Montant'])
 
             # Afficher le tableau modifié avec Streamlit
-            st.dataframe(mouvements, height=400)
+            st.dataframe(mouvements[['Date_Mouvement','Motif','Débit','Crédit']], height=400)
 
             # Calcule de entre et sortie et difference
             col1,col2,col3 = st.columns(3)
             # Calcul de l'Entrée (montants positifs), Sortie (montants négatifs), et Différence
-            Débit = mouvements['Débit'].sum()
+            Débit = (mouvements['Débit'] - mouvements['Gestion'].fillna(0) - mouvements['Perte'].fillna(0)).sum()
             Crédit = mouvements['Crédit'].sum()
             Solde = Débit - Crédit
 
             col4,col5,col6 = st.columns(3)
-            Redevance_total = mouvements['Redevance'].sum()
+            Gestion_total = mouvements['Gestion'].sum()
             Perte_total = mouvements['Perte'].sum()
 
             # Affichage des résultats dans les colonnes
             col1.success(f"💰 Débit : {Débit:,.2f} MAD")
             col2.error(f"📤 Crédit : {Crédit:,.2f} MAD")
             col3.warning(f"⚖️ Solde : {Solde:,.2f} MAD")
-            col4.info(f"🔄 Redevance : {Redevance_total:,.2f} MAD")
+            col4.info(f"🔄 Gestion : {Gestion_total:,.2f} MAD")
             col5.info(f"❌ Perte : {Perte_total:,.2f} MAD")
 
             st.subheader("Filtrages")
@@ -1273,23 +1299,23 @@ def get_to_app():
                 mouvements_filtrees = mouvements_filtrees[mouvements_filtrees['Motif'] == motif_selection]
 
             # Affichage du tableau filtré
-            st.dataframe(mouvements_filtrees)
+            st.dataframe(mouvements_filtrees[['Date_Mouvement','Motif','Débit','Crédit']])
 
             col1,col2,col3 = st.columns(3)
             # Calcul de l'Entrée (montants positifs), Sortie (montants négatifs), et Différence
-            Débit_f = mouvements_filtrees['Débit'].sum()
+            Débit_f = (mouvements_filtrees['Débit'] - mouvements_filtrees['Gestion'].fillna(0) - mouvements_filtrees['Perte'].fillna(0)).sum()
             Crédit_f = mouvements_filtrees['Crédit'].sum()
             Solde_f = Débit_f - Crédit_f
 
             col4,col5,col6 = st.columns(3)
-            Redevance_total_f = mouvements_filtrees['Redevance'].sum()
+            Gestion_total_f = mouvements_filtrees['Gestion'].sum()
             Perte_total_f = mouvements_filtrees['Perte'].sum()
 
             # Affichage des résultats dans les colonnes
             col1.success(f"💰 Débit : {Débit_f:,.2f} MAD")
             col2.error(f"📤 Crédit : {Crédit_f:,.2f} MAD")
             col3.info(f"⚖️ Différence : {Solde_f:,.2f} MAD")
-            col4.info(f"🔄 Redevance : {Redevance_total_f:,.2f} MAD")
+            col4.info(f"🔄 Gestion : {Gestion_total_f:,.2f} MAD")
             col5.info(f"❌ Perte : {Perte_total_f:,.2f} MAD")
 
     # Comparer comsomation du nlock avec les abonnes

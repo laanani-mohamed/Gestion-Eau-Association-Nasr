@@ -8,7 +8,7 @@ def main():
 
     # Chemin relatif pour l'image
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_path = os.path.join(script_dir, "assets", "logo", "user.png")
+    user_path = os.path.join(script_dir, "assets", "logo", "user.png")
 
     # Formulaire de connexion
     if 'logged_in' not in st.session_state:
@@ -17,7 +17,7 @@ def main():
     if not st.session_state.logged_in:
         col1, col2, col3 = st.columns([2, 2, 1])
         with col2:
-            st.image(logo_path, width=250)
+            st.image(user_path, width=250)
 
         col4, col5, col6 = st.columns([2, 2, 2])
         with col5:
