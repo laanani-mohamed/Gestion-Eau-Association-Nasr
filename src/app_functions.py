@@ -1256,16 +1256,18 @@ def get_to_app():
             # Afficher le tableau modifié avec Streamlit
             st.dataframe(mouvements[['Date_Mouvement','Motif','Débit','Crédit']], height=400)
 
+            col4,col5,col6 = st.columns(3)
+            Gestion_total = mouvements['Gestion'].fillna(0).sum()
+            Perte_total = mouvements['Perte'].fillna(0).sum()
+
             # Calcule de entre et sortie et difference
             col1,col2,col3 = st.columns(3)
             # Calcul de l'Entrée (montants positifs), Sortie (montants négatifs), et Différence
             Débit = (mouvements['Débit'] - mouvements['Gestion'].fillna(0) - mouvements['Perte'].fillna(0)).sum()
             Crédit = mouvements['Crédit'].sum()
-            Solde = Débit - Crédit
+            Solde = Débit +Gestion_total +Perte_total -Crédit
 
-            col4,col5,col6 = st.columns(3)
-            Gestion_total = mouvements['Gestion'].sum()
-            Perte_total = mouvements['Perte'].sum()
+
 
             # Affichage des résultats dans les colonnes
             col1.success(f"💰 Débit : {Débit:,.2f} MAD")
@@ -1301,15 +1303,17 @@ def get_to_app():
             # Affichage du tableau filtré
             st.dataframe(mouvements_filtrees[['Date_Mouvement','Motif','Débit','Crédit']])
 
+            col4,col5,col6 = st.columns(3)
+            Gestion_total_f = mouvements_filtrees['Gestion'].sum()
+            Perte_total_f = mouvements_filtrees['Perte'].sum()
+            
             col1,col2,col3 = st.columns(3)
             # Calcul de l'Entrée (montants positifs), Sortie (montants négatifs), et Différence
             Débit_f = (mouvements_filtrees['Débit'] - mouvements_filtrees['Gestion'].fillna(0) - mouvements_filtrees['Perte'].fillna(0)).sum()
             Crédit_f = mouvements_filtrees['Crédit'].sum()
-            Solde_f = Débit_f - Crédit_f
+            Solde_f = Débit_f +Gestion_total_f +Perte_total_f -Crédit_f
 
-            col4,col5,col6 = st.columns(3)
-            Gestion_total_f = mouvements_filtrees['Gestion'].sum()
-            Perte_total_f = mouvements_filtrees['Perte'].sum()
+            
 
             # Affichage des résultats dans les colonnes
             col1.success(f"💰 Débit : {Débit_f:,.2f} MAD")
