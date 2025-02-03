@@ -1070,12 +1070,12 @@ def get_to_app():
             st.subheader("Détail sur l'abonné")
             # Filtrer pour N_contrat sélectionné et Crédit != 0
             df_filtered = data_ff[(df_merged['N_contrat'] == n_contrat) & (df_merged['Crédit'] != 0)]
-            df_grouped = df_filtered.groupby(['N_contrat', 'Mois_Consome', 'Montant_dh']).agg({
+            df_grouped = df_filtered.groupby(['N_contrat', 'Mois_Consome', 'Total']).agg({
             'Montant_paye': 'sum'
             }).reset_index()
 
             # Calculer le crédit restant par mois en fonction des paiements
-            df_grouped['Crédit_rest'] = df_grouped['Montant_dh'] - df_grouped['Montant_paye']
+            df_grouped['Crédit_rest'] = df_grouped['Total'] - df_grouped['Montant_paye']
             df_grouped = df_grouped[df_grouped['Crédit_rest'] != 0]  # Garde les factures non payées
 
             # Joindre pour obtenir le détail complet des colonnes originales
@@ -1093,7 +1093,7 @@ def get_to_app():
             col1,col2 = st.columns(2)
             if not df_final.empty:
                 st.write("### Les factures Non payées :")
-                st.dataframe(df_final[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Montant_dh', 'Montant_paye', 'Crédit_rest']])
+                st.dataframe(df_final[['N_contrat', 'Mois_Consome', 'Index_m3', 'Qte_Consomme_m3', 'Total', 'Montant_paye', 'Crédit_rest']])
                 Sum_credit = df_final['Crédit_rest'].sum()
                 col1.warning(f"Crédit Consommation = {Sum_credit} dh")
                 col2.info(f"Nº mois Non Payé : {N_mois}")
