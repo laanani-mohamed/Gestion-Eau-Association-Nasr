@@ -1,5 +1,7 @@
 import streamlit as st
 import sqlite3
+import plotly.express as px
+import plotly.graph_objects as go 
 import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
@@ -59,7 +61,8 @@ def get_to_app():
             "Charge Maintenance",
             "Générer une facture de paiement",
             "Mouvement de la caisse",
-            "Vérification Consommation"
+            "Vérification Consommation",
+            "Tableau Analytics"
         ])
     
     
@@ -1398,6 +1401,93 @@ def get_to_app():
             sum_index_abonne = df2['Qte_consome'].sum() if not df2.empty else 0
             col1.info(f"Qte Compteur Block = {index_block} m3")
             col2.info(f"Consommation Totale = {sum_index_abonne} m3")
+
+    if option == "Tableau Analytics":
+        st.title("Consommation par Nº Contrat")
+
+        # Requête pour récupérer la liste des N_contrat disponibles
+        query_contrats = "SELECT DISTINCT N_contrat FROM Qte_Consommation"
+        contrats_df = pd.read_sql_query(query_contrats, conn)
+
+        # Sélection du N_contrat
+        N_c = st.selectbox("Sélectionnez un Nº de contrat :", contrats_df['N_contrat'].tolist())
+        data_f['Mois_Consome'] = pd.to_datetime(data_f['Mois_Consome']).dt.strftime('%m-%Y')
+            # Créer un graphique interactif avec Plotly
+        fig = px.bar(
+            data_f[data_f['N_contrat'] == N_c],
+            x='Mois_Consome',
+            y='Qte_Consomme_m3',
+            title=f'Consommation pour le Contrat {N_c}',
+            labels={'Mois_Consome': 'Date ', 'Qte_Consomme_m3': 'Qte (m³)'},
+            )
+
+        # Afficher le graphique dans Streamlit
+        st.plotly_chart(fig, use_container_width=True)
+
+
+        st.title("Analyse des Montants par Mois")
+
+        # Agréger les données par Mois_Consome
+        aggregated_data = data_f.groupby('Mois_Consome').agg({
+            'Montant_base_dh': 'sum',
+            'Gestion_dh': 'sum',
+            'Perte_dh': 'sum',
+            'Montant_paye': 'sum',
+            'Crédit': 'sum'
+        }).reset_index()
+
+        # Calculer la somme totale à recevoir (Montant_base_dh + Gestion_dh + Perte_dh)
+        aggregated_data['Total_a_recevoir'] = (
+            aggregated_data['Montant_base_dh'] +
+            aggregated_data['Gestion_dh'] +
+            aggregated_data['Perte_dh']
+        )
+
+        # Créer un graphique en barres groupées avec Plotly
+        fig = go.Figure()
+
+        # Barre pour le total à recevoir (en bleu)
+        fig.add_trace(go.Bar(
+            x=aggregated_data['Mois_Consome'],
+            y=aggregated_data['Total_a_recevoir'],
+            name='Total à Recevoir',
+            marker_color='black'
+        ))
+
+        # Barre pour le montant payé (en vert)
+        fig.add_trace(go.Bar(
+            x=aggregated_data['Mois_Consome'],
+            y=aggregated_data['Montant_paye'],
+            name='Montant Payé',
+            marker_color='green'
+        ))
+
+        # Barre pour le crédit restant (en rouge)
+        fig.add_trace(go.Bar(
+            x=aggregated_data['Mois_Consome'],
+            y=aggregated_data['Crédit'],
+            name='Crédit Restant',
+            marker_color='red'
+        ))
+
+        # Personnaliser le graphique
+        fig.update_layout(
+            barmode='group',  # Barres groupées
+            title="Montants à Recevoir, Payés et Crédit Restant par Mois",
+            xaxis_title="Mois de Consommation",
+            yaxis_title="Montant (DH)",
+            hovermode="x unified",  # Afficher les informations au survol
+            template="plotly_white"  # Thème du graphique
+        )
+
+        # Afficher le graphique dans Streamlit
+        st.plotly_chart(fig, use_container_width=True)
+
+
+
+
+# data_f = df_merged[['N_contrat', 'Mois_Consome', 'Date_réglement', 'N_recue', 'Index_m3', 'Qte_Consomme_m3', 
+#                    'Montant_base_dh', 'Gestion_dh', 'Perte_dh', 'Total', 'Montant_paye','Crédit']]
 
     # Fermer la connexion à la base de données
     conn.close()
