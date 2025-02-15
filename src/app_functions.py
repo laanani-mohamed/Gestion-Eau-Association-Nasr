@@ -1279,6 +1279,7 @@ def get_to_app():
             col4.info(f"🔄 Gestion : {Gestion_total:,.2f} MAD")
             col5.info(f"❌ Perte : {Perte_total:,.2f} MAD")
 
+            # Filtrage des données
             st.subheader("Filtrages")
             col1,col2,col3 = st.columns(3)
 

@@ -2,7 +2,4 @@ streamlit
 pandas
 fpdf
 sqlite3
-plotly.express
-plotly.graph_objects
-
-pip install -r requirements.txt
+plotly
