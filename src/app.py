@@ -40,3 +40,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#http://192.168.1.4:8501
+#streamlit run votre_app.py --server.address 0.0.0.0
